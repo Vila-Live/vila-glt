@@ -1,4 +1,5 @@
 #include "api-key.hpp"
+#include "model-store.hpp"
 #include <obs-module.h>
 
 extern struct obs_source_info live_translate_source_info;
@@ -16,6 +17,7 @@ bool obs_module_load(void)
 {
     blog(LOG_INFO, "[live-translate] module loaded");
     lt::api_key_load();
+    lt::model_catalog_load();
     obs_register_source(&live_translate_source_info);
     return true;
 }

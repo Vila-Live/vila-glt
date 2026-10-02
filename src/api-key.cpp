@@ -13,10 +13,8 @@ namespace lt {
 
 namespace {
 
-constexpr const char *kEnvName = "GEMINI_API_KEY";
-
 std::mutex g_mtx;
-std::string g_key;
+std::string g_env_text; // contents of the .env file
 std::atomic<uint32_t> g_version{1};
 
 // <OBS config folder>/.env. Derived from this module's config path
@@ -50,18 +48,18 @@ std::string read_env_file(const std::string &path)
     return out;
 }
 
-void persist(const std::string &key)
+// Caller holds g_mtx.
+void persist()
 {
     std::string path = env_file_path();
     if (path.empty()) return;
 
-    std::string text = dotenv_set(read_env_file(path), kEnvName, key);
-    if (text.empty()) {
+    if (g_env_text.empty()) {
         os_unlink(path.c_str());
         return;
     }
-    if (!os_quick_write_utf8_file(path.c_str(), text.c_str(), text.size(),
-                                  false)) {
+    if (!os_quick_write_utf8_file(path.c_str(), g_env_text.c_str(),
+                                  g_env_text.size(), false)) {
         blog(LOG_ERROR, "[live-translate] could not write %s; the API key is "
                         "kept for this session only", path.c_str());
         return;
@@ -79,27 +77,33 @@ void api_key_load()
 {
     std::string path = env_file_path();
     if (path.empty()) return;
-    std::string key = dotenv_get(read_env_file(path), kEnvName);
-    blog(LOG_INFO, "[live-translate] API key %s in %s",
-         key.empty() ? "not found" : "loaded from", path.c_str());
-    if (key.empty()) return;
+    std::string text = read_env_file(path);
+    blog(LOG_INFO, "[live-translate] API keys are read from %s%s", path.c_str(),
+         text.empty() ? " (not present yet)" : "");
     std::lock_guard<std::mutex> lk(g_mtx);
-    g_key = key;
+    g_env_text = text;
     g_version.fetch_add(1, std::memory_order_relaxed);
 }
 
-std::string api_key_get()
+std::string api_key_get(const std::string &env_name)
 {
     std::lock_guard<std::mutex> lk(g_mtx);
-    return g_key;
+    return dotenv_get(g_env_text, env_name);
 }
 
-void api_key_set(const std::string &key)
+void api_key_set(const std::string &env_name, const std::string &key)
 {
     std::lock_guard<std::mutex> lk(g_mtx);
-    if (key == g_key) return;
-    g_key = key;
-    persist(key);
+    if (dotenv_get(g_env_text, env_name) == key) return;
+    // Pick up edits made to the file by hand or by another plugin since load,
+    // so writing our variable does not drop theirs.
+    std::string path = env_file_path();
+    if (!path.empty()) {
+        std::string on_disk = read_env_file(path);
+        if (!on_disk.empty()) g_env_text = on_disk;
+    }
+    g_env_text = dotenv_set(g_env_text, env_name, key);
+    persist();
     g_version.fetch_add(1, std::memory_order_relaxed);
 }
 

@@ -22,9 +22,9 @@ original voice and a live translation.
 
 ## How it works
 
-The plugin registers one OBS source, **Gemini Translated Audio** *(audio
+The plugin registers one OBS source, **Live Translate** *(audio
 source)*. Add one per audio source you want translated and pick that source as
-its **Input Audio Source** — a microphone, a browser source, a media source, any
+its **Source to translate** — a microphone, a browser source, a media source, any
 OBS source that produces audio.
 
 It taps the input's audio (after the input's own filters, before its fader, so
@@ -41,7 +41,7 @@ delay** in its properties.
 input audio source (mic, browser, media, …)
    │ audio capture callback (post-filter, pre-fader; original is untouched)
    ▼
-[Gemini Translated Audio source]
+[Live Translate source]
    resample 16 kHz mono → chunk → WebSocket ─▶ Gemini Live API
                                                    │ 24 kHz PCM
    event-driven push loop ◀── ring buffer ◀────────┘
@@ -64,27 +64,30 @@ The plugin needs a Google **Gemini API key**:
 2. New users: AI Studio creates a default Google Cloud project and key
    automatically once you accept the Terms of Service. Otherwise click
    **Create API key**.
-3. Copy the key and paste it into the **Gemini API Key** field of any *Gemini
-   Translated Audio* source. One key is shared by all of them.
+3. In the properties of any *Live Translate* source click **Edit** next to
+   *API key*, paste the key into the field that opens and click **Save API
+   key**. The line then reads *API key: saved (...xxxx)*, showing only the last
+   four characters. One key is shared by all sources.
 
 Notes:
 
 - The key is **not** stored in the scene collection. It is saved as
   `GEMINI_API_KEY=...` in a `.env` file in the OBS config folder
   (`%APPDATA%\obs-studio\.env` on Windows, `~/.config/obs-studio/.env` on Linux,
-  `~/Library/Application Support/obs-studio/.env` on macOS) and erased from the
-  source settings, so it cannot be read back through OBS WebSocket and the field
-  stays empty when you reopen it. One key serves every source in every scene
-  collection.
+  `~/Library/Application Support/obs-studio/.env` on macOS). It is never put
+  back into the properties and cannot be read or set through OBS WebSocket. One
+  key per provider serves every source in every scene collection; the model
+  table names the variable each model uses.
 - The `.env` file is **plain text**, the same on every platform — protect it
   like a password file (on Linux/macOS it is created readable by you only). You
   can also create or edit it by hand; it is read when OBS starts. Other
   variables in the file are left untouched.
 - This guards against leaking the key by sharing scenes or through OBS
   WebSocket; it does not stop anyone who can read your OBS config folder.
-- Use **Forget saved API key** in the source properties to remove it.
+- **Edit** → **Forget API key** removes it.
 - A scene collection saved by an older version of the plugin still contains the
-  key in plaintext (also in OBS's `.bak` copies) until it is saved again.
+  key in plaintext (also in OBS's `.bak` copies) until it is saved again; on
+  load that key is moved to the `.env` file if none is stored yet.
 - `gemini-3.5-live-translate-preview` usage is billed per Google's pricing;
   check current quotas and pricing in AI Studio
   ([pricing](https://ai.google.dev/gemini-api/docs/pricing)).
@@ -100,21 +103,24 @@ Released for **Windows, macOS and Linux** — grab a prebuilt package from the
 - ✅ Reconnect with exponential backoff; live API-key / target-language changes.
 - ✅ Event-driven push output with a bounded scheduling lead (~600 ms) to ride
   out the model's phrase-boundary delivery jitter.
-- ✅ Optional **echo** toggle (default on): output speech even when it is already
-  in the target language. With it off, input already in the target language
-  stays silent.
-- ✅ Optional **playback delay** (0-30 seconds): hold the translated audio stream
-  so every translated phrase plays later by the configured amount.
+- ✅ **Live translate model** list, driven by [`data/models.json`](data/models.json)
+  (see *Models and languages*).
+- ✅ Optional **Repeat speech that is already in the target language** (echo,
+  default off): with it off, input already in the target language stays silent;
+  with it on, the model repeats it.
+- ✅ Optional **Delay for translated audio** (0-30 seconds): hold the translated
+  audio so every translated phrase plays later by the configured amount. The
+  original is never delayed. Only useful when the picture is delayed too.
 - ✅ Sentence endings play in full — streaming the mic continuously (silence
   included) lets the model detect when an utterance ends and emit it promptly,
   instead of holding it until the next one starts.
-- ✅ One translation stream per *Gemini Translated Audio* source. Add several to
+- ✅ One translation stream per *Live Translate* source. Add several to
   translate several inputs at once (e.g. a host plus guests in different
   languages); each has its own connection, language and settings. Other
-  *Gemini Translated Audio* sources are not offered as inputs, so a translation
+  *Live Translate* sources are not offered as inputs, so a translation
   is never translated again.
-- ✅ Hiding the source is the off switch. A session only runs while its *Gemini
-  Translated Audio* source is active in the program: hide it (eye icon, or an
+- ✅ Hiding the source is the off switch. A session only runs while its *Live
+  Translate* source is active in the program: hide it (eye icon, or an
   OBS show/hide hotkey) or switch to a scene without it and the connection is
   closed, so nothing is streamed to Gemini. Showing it again reconnects, which
   takes about a second.
@@ -148,13 +154,13 @@ OBS closed**:
 
 ## Usage
 
-1. Add a **Gemini Translated Audio** source to your scene (Sources → **+** →
-   *Gemini Translated Audio*).
+1. Add a **Live Translate** source to your scene (Sources → **+** →
+   *Live Translate*).
 
-2. In its properties pick the **Input Audio Source** to translate, paste your
-   API key, pick a target language, leave **echo** on, and optionally set
-   **Playback Delay (seconds)** from 0 to 30. Once it connects the status reads
-   *Connected* (reopen the properties to refresh it).
+2. In its properties pick the **Source to translate**, the **Live translate
+   model** and the **Target language**, and set the API key once (**Edit**).
+   Once it connects the status reads *Connected* (reopen the properties to
+   refresh it).
 
 3. The source plays the translated voice. Mix it against the original in the
    OBS mixer (e.g. lower the original under the translation for a voice-over),
@@ -175,26 +181,54 @@ plugin support needed:
 ```json
 { "requestType": "SetInputSettings",
   "requestData": {
-    "inputName": "Gemini Translated Audio",
+    "inputName": "Live Translate",
     "inputSettings": { "target_lang": "ja" } } }
 ```
 
 | setting | type | meaning |
 |---|---|---|
 | `input_source` | string | UUID of the OBS source to translate (empty stops the session) |
-| `target_lang` | string | BCP-47 code from [`src/languages.hpp`](src/languages.hpp) (e.g. `en`, `zh`, `ja`, `pt-BR`) — the value, not the display name |
-| `echo_target` | bool | output speech even when the input is already in the target language |
+| `model` | string | model `id` from [`data/models.json`](data/models.json) |
+| `target_lang` | string | language code from [`data/models.json`](data/models.json) (e.g. `en`, `zh`, `ja`, `pt-BR`) — the value, not the display name |
+| `echo_target` | bool | repeat speech that is already in the target language |
 | `playback_delay` | number | seconds to delay the translated audio stream, clamped to 0-30 |
-| `api_key` | string | write-only: sets the shared Gemini API key; it is never returned and an empty value changes nothing |
 
 Notes:
 
 - `inputName` must match your OBS source name exactly.
-- Changing `target_lang`, `echo_target` or `api_key` reconnects the session, so
+- Changing `model`, `target_lang` or `echo_target` reconnects the session, so
   expect a brief gap. Changing `input_source` or `playback_delay` does not.
+- The API key cannot be set or read this way; use the properties or the `.env`
+  file.
 - This is **set-only**. The runtime connection status (Connecting / Connected /
   API-key error) is not exposed over WebSocket — `GetInputSettings`
   returns the stored settings, not the live status.
+
+## Models and languages
+
+The **Live translate model** list and each model's languages come from
+[`data/models.json`](data/models.json). The file is embedded into the plugin
+when it is built, so the plugin works as a single binary.
+
+```json
+{ "models": [ {
+    "id": "gemini-3.5-live-translate-preview",
+    "name": "Gemini 3.5 Live Translate (preview)",
+    "provider": "gemini",
+    "api_key_env": "GEMINI_API_KEY",
+    "supports_echo": true,
+    "languages": [ { "code": "en", "name": "English" } ]
+} ] }
+```
+
+To add or change a model without rebuilding, put a `models.json` of the same
+shape into `plugin_config/obs-live-translate/` in the OBS config folder: a model
+with an existing `id` replaces the built-in one, new ids are added. It is read
+when OBS starts.
+
+`provider` selects the protocol the plugin speaks. Only `gemini` is implemented;
+a row with another provider is skipped until that protocol is added in code.
+`api_key_env` is the variable in the `.env` file that holds that model's key.
 
 ## Build from source
 
@@ -259,14 +293,16 @@ src/
                          chunk → stream) + event-driven output push loop
   translation-session.*  per-source WebSocket session + audio buffers + reconnect
   session-config.*       when a session runs / needs to reconnect
-  api-key.*              the shared API key, kept in <OBS config>/.env
+  model-catalog.*        parses/merges the model + language table
+  model-store.*          loads the catalog (embedded JSON + optional overrides)
+  api-key.*              API keys per provider, kept in <OBS config>/.env
   dotenv.*               minimal .env reading/editing
   live-protocol.*        build/parse Gemini Live API messages
   audio-pacing.*         OutputTimestamper (contiguous, lead-bounded timestamps)
   audio-convert.*        PCM downmix / conversion / chunking
   ring-buffer.*          bounded byte ring buffer
   backoff.*              exponential reconnect backoff
-  base64.*, languages.hpp
+  base64.*
 tests/                   Catch2 unit tests (one per pure module)
 installer/               Inno Setup script for the Windows installer
 cmake/, CMakePresets.json, buildspec.json
@@ -296,7 +332,7 @@ each labelled with its native name plus the English name (e.g. `日本語
 languages — English, Chinese, Japanese, Korean, Spanish, French, German,
 Portuguese (BR), Italian, Russian, Indonesian, Thai, Vietnamese — are pinned to
 the top; the rest follow in English-name alphabetical order. The exact list and
-BCP-47 codes live in [`src/languages.hpp`](src/languages.hpp).
+BCP-47 codes live in [`data/models.json`](data/models.json).
 
 Chinese uses the script-less code **`zh`**, not `zh-Hant` / `zh-Hans`. Output is
 speech, which has no script, so the script-specific codes sound identical — and

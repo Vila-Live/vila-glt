@@ -20,8 +20,8 @@ public:
     TranslationSession(const TranslationSession &) = delete;
     TranslationSession &operator=(const TranslationSession &) = delete;
 
-    void configure(const std::string &api_key, const std::string &target_lang,
-                   bool echo_target);
+    void configure(const std::string &api_key, const std::string &model,
+                   const std::string &target_lang, bool echo_target);
     void stop();
 
     void push_input_pcm(const uint8_t *data, size_t len);
@@ -48,6 +48,7 @@ private:
 
     std::mutex cfg_mtx_;
     std::string api_key_;
+    std::string model_;
     std::string target_lang_;
     bool echo_target_ = true;
 

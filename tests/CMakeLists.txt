@@ -11,6 +11,7 @@ add_executable(unit-tests
   test-backoff.cpp
   test-dotenv.cpp
   test-live-protocol.cpp
+  test-model-catalog.cpp
   test-output-delay.cpp
   test-ring-buffer.cpp
   test-session-config.cpp
@@ -21,6 +22,8 @@ add_executable(unit-tests
   ${CMAKE_SOURCE_DIR}/src/base64.cpp
   ${CMAKE_SOURCE_DIR}/src/dotenv.cpp
   ${CMAKE_SOURCE_DIR}/src/live-protocol.cpp
+  ${CMAKE_SOURCE_DIR}/src/model-catalog.cpp
+  ${MODELS_JSON_CPP}
   ${CMAKE_SOURCE_DIR}/src/output-delay.cpp
   ${CMAKE_SOURCE_DIR}/src/ring-buffer.cpp
   ${CMAKE_SOURCE_DIR}/src/session-config.cpp

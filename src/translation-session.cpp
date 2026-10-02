@@ -59,12 +59,14 @@ std::string TranslationSession::status_text()
 }
 
 void TranslationSession::configure(const std::string &api_key,
+                                   const std::string &model,
                                    const std::string &target_lang,
                                    bool echo_target)
 {
     {
         std::lock_guard<std::mutex> lk(cfg_mtx_);
         api_key_ = api_key;
+        model_ = model;
         target_lang_ = target_lang;
         echo_target_ = echo_target;
     }
@@ -74,8 +76,9 @@ void TranslationSession::configure(const std::string &api_key,
         return;
     }
     blog(LOG_INFO,
-         "[live-translate] configuring session: target=%s echo=%s api_key=%s",
-         target_lang.c_str(), echo_target ? "on" : "off",
+         "[live-translate] configuring session: model=%s target=%s echo=%s "
+         "api_key=%s",
+         model.c_str(), target_lang.c_str(), echo_target ? "on" : "off",
          api_key.empty() ? "empty" : "set");
     config_changed_ = true;
     if (!running_.exchange(true)) {
@@ -151,11 +154,12 @@ void TranslationSession::run()
     Backoff backoff(1000, 30000);
 
     while (running_) {
-        std::string key, lang;
+        std::string key, model, lang;
         bool echo;
         {
             std::lock_guard<std::mutex> lk(cfg_mtx_);
             key = api_key_;
+            model = model_;
             lang = target_lang_;
             echo = echo_target_;
         }
@@ -174,7 +178,7 @@ void TranslationSession::run()
         ws.setOnMessageCallback([&](const ix::WebSocketMessagePtr &msg) {
             if (msg->type == ix::WebSocketMessageType::Open) {
                 open = true;
-                std::string setup = build_setup_message(lang, echo);
+                std::string setup = build_setup_message(model, lang, echo);
                 ws.send(setup);
                 blog(LOG_INFO, "[live-translate] websocket opened; setup sent");
                 set_status(ConnStatus::Connected);

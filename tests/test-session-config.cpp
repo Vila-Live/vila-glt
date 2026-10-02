@@ -9,6 +9,7 @@ SessionConfig valid()
 {
     SessionConfig c;
     c.api_key = "key";
+    c.model = "model-a";
     c.target_lang = "en";
     c.echo_target = true;
     c.input_uuid = "uuid-a";
@@ -43,6 +44,10 @@ TEST_CASE("changing what Gemini sees at setup requires a reconnect")
     key.api_key = "other";
     REQUIRE(lt::session_needs_reconnect(valid(), key));
 
+    SessionConfig model = valid();
+    model.model = "model-b";
+    REQUIRE(lt::session_needs_reconnect(valid(), model));
+
     SessionConfig lang = valid();
     lang.target_lang = "ja";
     REQUIRE(lt::session_needs_reconnect(valid(), lang));
@@ -61,4 +66,13 @@ TEST_CASE("an unchanged config or a different input does not reconnect")
     SessionConfig input = valid();
     input.input_uuid = "uuid-b";
     REQUIRE_FALSE(lt::session_needs_reconnect(valid(), input));
+}
+
+TEST_CASE("the API key hint shows only the last four characters")
+{
+    REQUIRE(lt::api_key_hint("").empty());
+    REQUIRE(lt::api_key_hint("AIzaSyABCDab12") == "...ab12");
+    // Too short to show a tail without giving most of the key away.
+    REQUIRE(lt::api_key_hint("abcd") == "...");
+    REQUIRE(lt::api_key_hint("abcdefg") == "...");
 }

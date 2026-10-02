@@ -38,9 +38,14 @@ if(NOT MSVC)
   target_compile_options(ixwebsocket PRIVATE -Wno-error)
 endif()
 
+include(cmake/common/embed-models.cmake)
+
 add_library(${CMAKE_PROJECT_NAME} MODULE
   src/plugin-main.cpp
   src/api-key.cpp
+  src/model-catalog.cpp
+  src/model-store.cpp
+  ${MODELS_JSON_CPP}
   src/base64.cpp
   src/dotenv.cpp
   src/audio-convert.cpp
@@ -53,6 +58,7 @@ add_library(${CMAKE_PROJECT_NAME} MODULE
   src/source.cpp
   src/translation-session.cpp
 )
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE src)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
   OBS::libobs
   ixwebsocket

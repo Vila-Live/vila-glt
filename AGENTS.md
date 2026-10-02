@@ -53,11 +53,15 @@ Install: copy `build_x64\RelWithDebInfo\obs-live-translate.dll` to
   (~600 ms) scheduling lead.
 - `translation-session.*` — one per source: WebSocket to Gemini (reconnect +
   backoff), input/output ring buffers, output-ready notification + interrupt.
-- `api-key.*` — the one API key shared by all sources, stored as
-  `GEMINI_API_KEY` in `<OBS config folder>/.env` (never in source settings / the
+- `api-key.*` — API keys shared by all sources, one variable per provider (e.g.
+  `GEMINI_API_KEY`) in `<OBS config folder>/.env` (never in source settings / the
   scene collection). Plain text by the owner's decision: no OS-specific secret
   stores.
-- `dotenv.*`, `session-config.*`, `audio-pacing.*`, `audio-convert.*`, `ring-buffer.*`,
+- `data/models.json` — the model + language table, embedded into the plugin by
+  `cmake/common/embed-models.cmake`; `model-store.*` loads it plus optional
+  override files. Adding a model for an existing provider is a JSON change; a
+  new provider needs a protocol implementation.
+- `model-catalog.*`, `dotenv.*`, `session-config.*`, `audio-pacing.*`, `audio-convert.*`, `ring-buffer.*`,
   `backoff.*`, `live-protocol.*`, `output-delay.*`, `base64.*` — pure modules,
   each with a Catch2 test.
 

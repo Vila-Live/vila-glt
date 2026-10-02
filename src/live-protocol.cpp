@@ -6,10 +6,11 @@ using nlohmann::json;
 
 namespace lt {
 
-std::string build_setup_message(const std::string &target, bool echo)
+std::string build_setup_message(const std::string &model_id,
+                                const std::string &target, bool echo)
 {
     json j;
-    j["setup"]["model"] = "models/gemini-3.5-live-translate-preview";
+    j["setup"]["model"] = "models/" + model_id;
     j["setup"]["generationConfig"]["responseModalities"] = json::array({"AUDIO"});
     j["setup"]["generationConfig"]["translationConfig"]["targetLanguageCode"] = target;
     j["setup"]["generationConfig"]["translationConfig"]["echoTargetLanguage"] = echo;

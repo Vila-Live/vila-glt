@@ -7,7 +7,8 @@ using nlohmann::json;
 
 TEST_CASE("setup message has model and translation config")
 {
-    std::string msg = build_setup_message("zh-TW", true);
+    std::string msg = build_setup_message("gemini-3.5-live-translate-preview",
+                                          "zh-TW", true);
     json j = json::parse(msg);
     REQUIRE(j["setup"]["model"] == "models/gemini-3.5-live-translate-preview");
     REQUIRE(j["setup"]["generationConfig"]["responseModalities"][0] == "AUDIO");
@@ -17,8 +18,9 @@ TEST_CASE("setup message has model and translation config")
 
 TEST_CASE("setup message can disable target-language echo")
 {
-    std::string msg = build_setup_message("en", false);
+    std::string msg = build_setup_message("some-other-model", "en", false);
     json j = json::parse(msg);
+    REQUIRE(j["setup"]["model"] == "models/some-other-model");
     REQUIRE(j["setup"]["generationConfig"]["translationConfig"]["targetLanguageCode"] == "en");
     REQUIRE(j["setup"]["generationConfig"]["translationConfig"]["echoTargetLanguage"] == false);
 }

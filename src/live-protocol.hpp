@@ -6,7 +6,8 @@
 
 namespace lt {
 
-std::string build_setup_message(const std::string &target_language_code,
+std::string build_setup_message(const std::string &model_id,
+                                const std::string &target_language_code,
                                 bool echo_target_language);
 
 std::string build_realtime_input_message(const uint8_t *pcm, size_t len);
