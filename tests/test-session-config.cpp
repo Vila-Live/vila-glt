@@ -19,15 +19,22 @@ SessionConfig valid()
 
 TEST_CASE("session runs only with both an API key and an input source")
 {
-    REQUIRE(lt::session_should_run(valid()));
+    REQUIRE(lt::session_should_run(valid(), true));
 
     SessionConfig no_key = valid();
     no_key.api_key.clear();
-    REQUIRE_FALSE(lt::session_should_run(no_key));
+    REQUIRE_FALSE(lt::session_should_run(no_key, true));
 
     SessionConfig no_input = valid();
     no_input.input_uuid.clear();
-    REQUIRE_FALSE(lt::session_should_run(no_input));
+    REQUIRE_FALSE(lt::session_should_run(no_input, true));
+}
+
+TEST_CASE("session does not run while its source is not active in the program")
+{
+    // Hiding the source (or leaving its scene) is the off switch: nothing is
+    // streamed to Gemini until it is shown again.
+    REQUIRE_FALSE(lt::session_should_run(valid(), false));
 }
 
 TEST_CASE("changing what Gemini sees at setup requires a reconnect")

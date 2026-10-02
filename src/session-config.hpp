@@ -11,8 +11,9 @@ struct SessionConfig {
     std::string input_uuid; // UUID of the OBS source being translated
 };
 
-// True iff a session should be running: it needs both a key and an input.
-bool session_should_run(const SessionConfig &c);
+// True iff a session should be running: it needs a key and an input, and its
+// source has to be active in the program (hiding the source is the off switch).
+bool session_should_run(const SessionConfig &c, bool source_active);
 
 // True iff moving from prev to next changes something Gemini is told at setup,
 // so the connection has to be re-established. A different input only re-points

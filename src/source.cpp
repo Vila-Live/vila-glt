@@ -49,6 +49,16 @@ struct SourceData {
     lt::SessionConfig cfg;
     obs_weak_source_t *input_weak = nullptr; // attached input, if any
 
+    // Session control. OBS reports settings changes on the UI thread and
+    // activation on the graphics thread; both only record what is wanted and
+    // bump state_version. The push loop is the one thread that starts/stops the
+    // session, so a blocking stop never stalls rendering or the UI.
+    std::atomic<bool> program_active{false};
+    std::atomic<uint32_t> state_version{1};
+    uint32_t seen_version = 0;      // push loop only
+    bool session_started = false;   // push loop only
+    lt::SessionConfig applied;      // push loop only
+
     // Output side: translated audio pushed into the OBS mixer.
     std::thread thread;
     std::atomic<bool> active{false};
@@ -174,25 +184,56 @@ void source_update(void *data, obs_data_t *settings)
         delay_seconds_to_ms(obs_data_get_double(settings, "playback_delay")),
         std::memory_order_relaxed);
 
-    lt::SessionConfig prev;
     {
         std::lock_guard<std::mutex> lk(d->input_mtx);
-        prev = d->cfg;
         d->cfg = next;
     }
     sync_input(d);
+    d->state_version.fetch_add(1, std::memory_order_relaxed);
+}
 
-    if (!lt::session_should_run(next)) {
-        d->session.stop();
+void source_activate(void *data)
+{
+    auto *d = static_cast<SourceData *>(data);
+    d->program_active = true;
+    d->state_version.fetch_add(1, std::memory_order_relaxed);
+}
+
+void source_deactivate(void *data)
+{
+    auto *d = static_cast<SourceData *>(data);
+    d->program_active = false;
+    d->state_version.fetch_add(1, std::memory_order_relaxed);
+}
+
+// Push loop only. Brings the session in line with the wanted state: stopped
+// while the source is hidden or unconfigured, (re)connected when it becomes
+// runnable or when the key/language/echo changes. A session that stopped itself
+// on an auth error stays down until one of those changes, or until the source
+// is hidden and shown again.
+void sync_session(SourceData *d)
+{
+    uint32_t version = d->state_version.load(std::memory_order_relaxed);
+    if (version == d->seen_version) return;
+    d->seen_version = version;
+
+    lt::SessionConfig want;
+    {
+        std::lock_guard<std::mutex> lk(d->input_mtx);
+        want = d->cfg;
+    }
+    if (!lt::session_should_run(want, d->program_active)) {
+        if (d->session_started) {
+            d->session.stop();
+            d->session_started = false;
+        }
         return;
     }
-    // Start a cleanly stopped session, but leave one that stopped on an auth
-    // error alone until the key/language/echo actually changes, so a bad key
-    // doesn't reconnect on every unrelated settings tweak.
-    bool startable = !d->session.is_running() &&
-                     d->session.status() != lt::ConnStatus::AuthError;
-    if (startable || lt::session_needs_reconnect(prev, next))
-        d->session.configure(next.api_key, next.target_lang, next.echo_target);
+    if (!d->session_started || lt::session_needs_reconnect(d->applied, want)) {
+        d->session.configure(want.api_key, want.target_lang, want.echo_target);
+        d->session_started = true;
+    }
+    d->applied = want;
 }
 
 void push_loop(SourceData *d)
@@ -200,6 +241,8 @@ void push_loop(SourceData *d)
     std::vector<uint8_t> buf(kDrainCapBytes);
     uint64_t last_input_sync = 0;
     while (d->active) {
+        sync_session(d);
+
         uint64_t loop_now = os_gettime_ns();
         if (loop_now - last_input_sync >= kInputSyncIntervalNs) {
             last_input_sync = loop_now;
@@ -297,6 +340,9 @@ std::string status_text(SourceData *d)
         if (!d->input_weak)
             return obs_module_text("Input audio source not found.");
     }
+    if (!d->program_active)
+        return obs_module_text("Paused: this source is hidden or not in the "
+                               "active scene.");
     return d->session.status_text();
 }
 
@@ -356,6 +402,8 @@ struct obs_source_info live_translate_source_info = [] {
     info.create = source_create;
     info.destroy = source_destroy;
     info.update = source_update;
+    info.activate = source_activate;
+    info.deactivate = source_deactivate;
     info.get_properties = source_properties;
     info.get_defaults = source_defaults;
     return info;

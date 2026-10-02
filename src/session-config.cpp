@@ -2,9 +2,9 @@
 
 namespace lt {
 
-bool session_should_run(const SessionConfig &c)
+bool session_should_run(const SessionConfig &c, bool source_active)
 {
-    return !c.api_key.empty() && !c.input_uuid.empty();
+    return source_active && !c.api_key.empty() && !c.input_uuid.empty();
 }
 
 bool session_needs_reconnect(const SessionConfig &prev,

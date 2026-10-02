@@ -99,6 +99,11 @@ Released for **Windows, macOS and Linux** — grab a prebuilt package from the
   languages); each has its own connection, language and settings. Other
   *Gemini Translated Audio* sources are not offered as inputs, so a translation
   is never translated again.
+- ✅ Hiding the source is the off switch. A session only runs while its *Gemini
+  Translated Audio* source is active in the program: hide it (eye icon, or an
+  OBS show/hide hotkey) or switch to a scene without it and the connection is
+  closed, so nothing is streamed to Gemini. Showing it again reconnects, which
+  takes about a second.
 - ✅ A muted input is sent as silence, so muting the original also stops its
   translation. Lowering the input's fader does not affect the translation.
 - ⚠️ The translated audio lags your speech by a few seconds — the model's
