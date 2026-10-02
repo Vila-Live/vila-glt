@@ -1,6 +1,5 @@
 #include <obs-module.h>
 
-extern struct obs_source_info live_translate_filter_info;
 extern struct obs_source_info live_translate_source_info;
 
 OBS_DECLARE_MODULE()
@@ -15,7 +14,6 @@ extern "C" const char *obs_module_description(void)
 bool obs_module_load(void)
 {
     blog(LOG_INFO, "[live-translate] module loaded");
-    obs_register_source(&live_translate_filter_info);
     obs_register_source(&live_translate_source_info);
     return true;
 }

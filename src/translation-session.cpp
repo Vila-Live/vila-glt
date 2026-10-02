@@ -18,12 +18,6 @@ uint64_t now_ms()
 }
 }
 
-TranslationSession &TranslationSession::instance()
-{
-    static TranslationSession s;
-    return s;
-}
-
 TranslationSession::TranslationSession() = default;
 
 TranslationSession::~TranslationSession() { stop(); }
@@ -93,40 +87,12 @@ void TranslationSession::configure(const std::string &api_key,
     }
 }
 
-bool TranslationSession::claim_output(const void *token)
-{
-    return output_owner_.claim(token);
-}
-
-void TranslationSession::release_output(const void *token)
-{
-    // Releasing output ownership does not stop the session: the worker thread is
-    // driven by the filter input, so a source detaching must not stop a
-    // still-producing translation.
-    output_owner_.release(token);
-}
-
-bool TranslationSession::output_owned_by_other(const void *token)
-{
-    return output_owner_.owned_by_other(token);
-}
-
-void TranslationSession::set_output_delay_ms(uint32_t delay_ms)
-{
-    output_delay_ms_.store(delay_ms, std::memory_order_relaxed);
-}
-
-uint32_t TranslationSession::output_delay_ms() const
-{
-    return output_delay_ms_.load(std::memory_order_relaxed);
-}
-
 void TranslationSession::stop()
 {
     running_.exchange(false);
     // Always join: run() may have already cleared running_ itself (auth error),
     // in which case the thread is still joinable and must be reaped here so the
-    // singleton's destruction does not std::terminate.
+    // session's destruction does not std::terminate.
     if (thread_.joinable()) thread_.join();
     input_.clear();
     output_.clear();

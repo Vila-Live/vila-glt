@@ -4,8 +4,9 @@
 
 A native **Windows** OBS Studio plugin that does real-time speech-to-speech
 translation via the Google Gemini Live API (`gemini-3.5-live-translate-preview`).
-A microphone's audio is streamed to Gemini and the translated audio is emitted
-as a separate OBS audio source that can live on its own track.
+An OBS audio source's audio is streamed to Gemini and the translated audio is
+emitted as a separate OBS audio source that can live on its own track. Several
+translations (one per input) can run at once.
 
 **The plugin is implemented and released.** See `README.md` for the architecture
 and behavior. Your job now is **maintenance and incremental changes**, not a
@@ -33,27 +34,29 @@ Install: copy `build_x64\RelWithDebInfo\obs-live-translate.dll` to
 - **Test-driven.** For any change: write the failing test → confirm it fails →
   write the minimal implementation → confirm it passes → commit. Pure logic lives
   behind the libobs-free `unit-tests` target so it can be tested without OBS;
-  changes that touch libobs (`filter.cpp`, `source.cpp`, `translation-session`)
+  changes that touch libobs (`source.cpp`, `translation-session`)
   are verified by a full plugin build.
 - **Do not skip verification.** If a build/test can't run because a prerequisite
   (e.g. libobs) is missing, stop and report what is missing — don't claim done.
 - **Commits**: author as `weisunglee`, never add Claude/AI trailers. Use a feature
   branch; do not commit directly to `main` unless explicitly told.
-- Keep changes scoped. The spec's non-goals (captions, multiple simultaneous
-  sessions, encrypted key storage, explicit source-language selection) remain out
-  of scope for v1.
+- Keep changes scoped. The non-goals (captions, one input into several languages
+  at once, encrypted key storage, explicit source-language selection) remain out
+  of scope.
 
 ## Architecture (quick map)
 
-- `filter.cpp` — mic audio filter: resample to 16 kHz mono → voice-gate → chunk →
-  hand to `TranslationSession`.
-- `translation-session.*` — shared singleton: WebSocket to Gemini (reconnect +
+- `source.cpp` — translated-audio source, the only registered OBS source. Input:
+  an audio capture callback on the selected source (post-filter, pre-fader) →
+  resample to 16 kHz mono → chunk → hand to its `TranslationSession`. Output:
+  event-driven push loop that drains the session's output buffer and pushes to
+  `obs_source_output_audio`, paced by `OutputTimestamper` to keep a bounded
+  (~600 ms) scheduling lead.
+- `translation-session.*` — one per source: WebSocket to Gemini (reconnect +
   backoff), input/output ring buffers, output-ready notification + interrupt.
-- `source.cpp` — translated-audio source: event-driven push loop that drains the
-  output buffer and pushes to `obs_source_output_audio`, paced by
-  `OutputTimestamper` to keep a bounded (~100 ms) scheduling lead.
-- `audio-pacing.*`, `audio-convert.*`, `ring-buffer.*`, `backoff.*`,
-  `live-protocol.*`, `base64.*` — pure modules, each with a Catch2 test.
+- `session-config.*`, `audio-pacing.*`, `audio-convert.*`, `ring-buffer.*`,
+  `backoff.*`, `live-protocol.*`, `output-delay.*`, `base64.*` — pure modules,
+  each with a Catch2 test.
 
 ## Key technical facts (verified against Google's docs)
 

@@ -1,5 +1,4 @@
 #pragma once
-#include "owner-guard.hpp"
 #include "ring-buffer.hpp"
 #include <atomic>
 #include <condition_variable>
@@ -11,9 +10,15 @@ namespace lt {
 
 enum class ConnStatus { Idle, Connecting, Connected, Reconnecting, AuthError };
 
+// One translation stream: a WebSocket to Gemini plus its input/output audio
+// buffers. Each translated-audio source owns its own session, so several
+// translations can run side by side without sharing any state.
 class TranslationSession {
 public:
-    static TranslationSession &instance();
+    TranslationSession();
+    ~TranslationSession();
+    TranslationSession(const TranslationSession &) = delete;
+    TranslationSession &operator=(const TranslationSession &) = delete;
 
     void configure(const std::string &api_key, const std::string &target_lang,
                    bool echo_target);
@@ -26,24 +31,11 @@ public:
     bool take_interrupted();
     uint64_t input_idle_ms();
 
-    // Single-owner guard for the output stream: only one translated-audio
-    // source may own it at a time (first-wins), so two sources don't steal
-    // chunks from each other. (The filter/input side is guarded per-source in
-    // filter.cpp instead.)
-    bool claim_output(const void *token);
-    void release_output(const void *token);
-    bool output_owned_by_other(const void *token);
-
-    void set_output_delay_ms(uint32_t delay_ms);
-    uint32_t output_delay_ms() const;
-
     ConnStatus status();
     std::string status_text();
     bool is_running();
 
 private:
-    TranslationSession();
-    ~TranslationSession();
     void run();
     void set_status(ConnStatus s, const std::string &detail = "");
 
@@ -58,9 +50,6 @@ private:
     std::string api_key_;
     std::string target_lang_;
     bool echo_target_ = true;
-
-    OwnerGuard output_owner_;
-    std::atomic<uint32_t> output_delay_ms_{0};
 
     std::atomic<bool> running_{false};
     std::atomic<bool> config_changed_{false};

@@ -22,31 +22,35 @@ original voice and a live translation.
 
 ## How it works
 
-The plugin registers two OBS sources:
+The plugin registers one OBS source, **Gemini Translated Audio** *(audio
+source)*. Add one per audio source you want translated and pick that source as
+its **Input Audio Source** — a microphone, a browser source, a media source, any
+OBS source that produces audio.
 
-1. **Gemini Live Translate** *(audio filter)* — add it to your microphone source.
-   It resamples the mic to 16 kHz mono 16-bit PCM, chunks it (100 ms /
-   3200-byte chunks), and streams it **continuously** to Gemini over a TLS
-   WebSocket — including the silence during pauses, which the model relies on to
-   detect when an utterance ends and emit its translation promptly. Configure
-   your **API key**, **target language**, **echo** option, and optional
-   **playback delay** in its properties.
-
-2. **Gemini Translated Audio** *(audio source)* — add it to your scene on its own
-   audio track. It receives the 24 kHz translated PCM from Gemini and pushes it
-   into the OBS mixer as it arrives.
+It taps the input's audio (after the input's own filters, before its fader, so
+lowering the original in the mixer does not change what Gemini hears), resamples
+it to 16 kHz mono 16-bit PCM, chunks it (100 ms / 3200-byte chunks), and streams
+it **continuously** to Gemini over a TLS WebSocket — including the silence
+during pauses, which the model relies on to detect when an utterance ends and
+emit its translation promptly. The 24 kHz translated PCM that comes back is
+pushed into the OBS mixer as this source's own audio. Configure the **input**,
+**API key**, **target language**, **echo** option, and optional **playback
+delay** in its properties.
 
 ```
-mic ─▶ [Gemini Live Translate filter]
-          resample 16 kHz mono → chunk → WebSocket ─▶ Gemini Live API
-                                                          │ 24 kHz PCM
-                                                          ▼
-       [Gemini Translated Audio source] ◀── ring buffer ◀┘
-          event-driven push loop → obs_source_output_audio → OBS mixer
+input audio source (mic, browser, media, …)
+   │ audio capture callback (post-filter, pre-fader; original is untouched)
+   ▼
+[Gemini Translated Audio source]
+   resample 16 kHz mono → chunk → WebSocket ─▶ Gemini Live API
+                                                   │ 24 kHz PCM
+   event-driven push loop ◀── ring buffer ◀────────┘
+   → obs_source_output_audio → OBS mixer
 ```
 
-A single shared `TranslationSession` owns the WebSocket connection (with
-reconnect/backoff) and the input/output audio buffers. The output path pushes
+Each source owns its own `TranslationSession` — the WebSocket connection (with
+reconnect/backoff) and the input/output audio buffers — so several sources can
+translate different inputs side by side. The output path pushes
 every received PCM chunk to OBS with contiguous, duration-spaced timestamps,
 paced so the scheduling lead stays bounded (~600 ms, enough to ride out the
 model's phrase-boundary delivery jitter) — the OBS mixer is the clock.
@@ -60,8 +64,8 @@ The plugin needs a Google **Gemini API key**:
 2. New users: AI Studio creates a default Google Cloud project and key
    automatically once you accept the Terms of Service. Otherwise click
    **Create API key**.
-3. Copy the key and paste it into the **Gemini API Key** field of the *Gemini
-   Live Translate* filter.
+3. Copy the key and paste it into the **Gemini API Key** field of each *Gemini
+   Translated Audio* source.
 
 Notes:
 
@@ -77,8 +81,8 @@ Released for **Windows, macOS and Linux** — grab a prebuilt package from the
 [Releases](https://github.com/weisunglee/obs-live-translate/releases) page
 (Windows is the tested platform; see the note under *Install*). Current behavior:
 
-- ✅ Mic → Gemini streaming (continuous, including pause silence), translated
-  audio played back via the OBS mixer.
+- ✅ Any audio source → Gemini streaming (continuous, including pause silence),
+  translated audio played back via the OBS mixer.
 - ✅ Reconnect with exponential backoff; live API-key / target-language changes.
 - ✅ Event-driven push output with a bounded scheduling lead (~600 ms) to ride
   out the model's phrase-boundary delivery jitter.
@@ -90,13 +94,13 @@ Released for **Windows, macOS and Linux** — grab a prebuilt package from the
 - ✅ Sentence endings play in full — streaming the mic continuously (silence
   included) lets the model detect when an utterance ends and emit it promptly,
   instead of holding it until the next one starts.
-- ✅ Single-session by design. If a source has two *Gemini Live Translate*
-  filters, only the first runs; the extra is disabled with a warning in its
-  properties (removing the first lets the other take over). Likewise only one
-  *Gemini Translated Audio* source plays; a second is muted with a warning.
-  Note: the plugin runs a single translation stream, so adding the **filter to
-  two different sources** is unsupported (both would feed the one session) —
-  keep it on a single source.
+- ✅ One translation stream per *Gemini Translated Audio* source. Add several to
+  translate several inputs at once (e.g. a host plus guests in different
+  languages); each has its own connection, language and settings. Other
+  *Gemini Translated Audio* sources are not offered as inputs, so a translation
+  is never translated again.
+- ✅ A muted input is sent as silence, so muting the original also stops its
+  translation. Lowering the input's fader does not affect the translation.
 - ⚠️ The translated audio lags your speech by a few seconds — the model's
   translation latency plus a fixed ~600 ms smoothing buffer (which doesn't
   accumulate; measured backlog stays <50 ms). Tip: when **recording**, pause a
@@ -125,38 +129,40 @@ OBS closed**:
 
 ## Usage
 
-1. Add the **Gemini Live Translate** filter to your microphone source
-   (right-click the mic → *Filters* → **+** → *Gemini Live Translate*). Paste your
+1. Add a **Gemini Translated Audio** source to your scene (Sources → **+** →
+   *Gemini Translated Audio*).
+
+2. In its properties pick the **Input Audio Source** to translate, paste your
    API key, pick a target language, leave **echo** on, and optionally set
    **Playback Delay (seconds)** from 0 to 30. Once it connects the status reads
-   *Connected*.
+   *Connected* (reopen the properties to refresh it).
 
-   ![Gemini Live Translate filter properties](screenshots/micro-filters.png)
+3. The source plays the translated voice. Mix it against the original in the
+   OBS mixer (e.g. lower the original under the translation for a voice-over),
+   or route it to its own track in *Advanced Audio Properties*.
 
-2. Add a **Gemini Translated Audio** source to your scene (Sources → **+** →
-   *Gemini Translated Audio*). This plays the translated voice; route it to its
-   own track in *Advanced Audio Properties* to keep it separate from your mic.
+Repeat for every audio source you want translated.
 
-   ![Gemini Translated Audio source](screenshots/audio-source.png)
+> The screenshots in `screenshots/` still show the earlier filter-based setup.
 
 ## Remote control (OBS WebSocket)
 
-The filter's settings are plain OBS source settings, so you can change the
+The source's settings are plain OBS source settings, so you can change the
 **target language**, **echo** option, and **playback delay** live from any OBS WebSocket v5 client
 (scripts, [`obs-cli`](https://github.com/muesli/obs-cli), Advanced Scene
-Switcher, your own app) using the `SetSourceFilterSettings` request — no extra
+Switcher, your own app) using the `SetInputSettings` request — no extra
 plugin support needed:
 
 ```json
-{ "requestType": "SetSourceFilterSettings",
+{ "requestType": "SetInputSettings",
   "requestData": {
-    "sourceName": "Mic/Aux",
-    "filterName": "Gemini Live Translate",
-    "filterSettings": { "target_lang": "ja" } } }
+    "inputName": "Gemini Translated Audio",
+    "inputSettings": { "target_lang": "ja" } } }
 ```
 
 | setting | type | meaning |
 |---|---|---|
+| `input_source` | string | UUID of the OBS source to translate (empty stops the session) |
 | `target_lang` | string | BCP-47 code from [`src/languages.hpp`](src/languages.hpp) (e.g. `en`, `zh`, `ja`, `pt-BR`) — the value, not the display name |
 | `echo_target` | bool | output speech even when the input is already in the target language |
 | `playback_delay` | number | seconds to delay the translated audio stream, clamped to 0-30 |
@@ -164,15 +170,14 @@ plugin support needed:
 
 Notes:
 
-- `sourceName` / `filterName` must match your OBS names exactly (`filterName`
-  defaults to *Gemini Live Translate*).
+- `inputName` must match your OBS source name exactly.
 - Keep the request's default `overlay: true` (merge). With `overlay: false` OBS
-  first resets the filter to defaults — and since `api_key` has no default, that
+  first resets the source to defaults — and since `api_key` has no default, that
   **clears the key and stops translation**.
-- Changing `target_lang` reconnects the session with the new language, so expect
-  a brief gap.
+- Changing `target_lang`, `echo_target` or `api_key` reconnects the session, so
+  expect a brief gap. Changing `input_source` or `playback_delay` does not.
 - This is **set-only**. The runtime connection status (Connecting / Connected /
-  API-key error) is not exposed over WebSocket — `GetSourceFilterSettings`
+  API-key error) is not exposed over WebSocket — `GetInputSettings`
   returns the stored settings, not the live status.
 
 ## Build from source
@@ -233,10 +238,11 @@ audio conversion, audio pacing/timestamper, Gemini protocol parsing) and does
 
 ```
 src/
-  plugin-main.cpp        module entry; registers the filter + source
-  filter.cpp             mic filter: resample → chunk → stream (continuous)
-  source.cpp             translated-audio source: event-driven push loop
-  translation-session.*  shared WebSocket session + audio buffers + reconnect
+  plugin-main.cpp        module entry; registers the source
+  source.cpp             translated-audio source: input capture (resample →
+                         chunk → stream) + event-driven output push loop
+  translation-session.*  per-source WebSocket session + audio buffers + reconnect
+  session-config.*       when a session runs / needs to reconnect
   live-protocol.*        build/parse Gemini Live API messages
   audio-pacing.*         OutputTimestamper (contiguous, lead-bounded timestamps)
   audio-convert.*        PCM downmix / conversion / chunking
@@ -285,8 +291,8 @@ language, so you only pick what to translate *into*.
 
 ## Non-goals (v1)
 
-Captions/subtitles, multiple simultaneous sessions, encrypted key storage, and
-explicit source-language selection are out of scope.
+Captions/subtitles, translating one input into several languages at once,
+encrypted key storage, and explicit source-language selection are out of scope.
 
 ## License
 

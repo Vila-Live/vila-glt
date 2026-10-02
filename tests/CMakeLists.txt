@@ -12,7 +12,7 @@ add_executable(unit-tests
   test-live-protocol.cpp
   test-output-delay.cpp
   test-ring-buffer.cpp
-  test-owner-guard.cpp
+  test-session-config.cpp
   test-smoke.cpp
   ${CMAKE_SOURCE_DIR}/src/audio-convert.cpp
   ${CMAKE_SOURCE_DIR}/src/audio-pacing.cpp
@@ -20,8 +20,8 @@ add_executable(unit-tests
   ${CMAKE_SOURCE_DIR}/src/base64.cpp
   ${CMAKE_SOURCE_DIR}/src/live-protocol.cpp
   ${CMAKE_SOURCE_DIR}/src/output-delay.cpp
-  ${CMAKE_SOURCE_DIR}/src/owner-guard.cpp
   ${CMAKE_SOURCE_DIR}/src/ring-buffer.cpp
+  ${CMAKE_SOURCE_DIR}/src/session-config.cpp
 )
 target_include_directories(unit-tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(unit-tests PRIVATE Catch2::Catch2 nlohmann_json::nlohmann_json)
