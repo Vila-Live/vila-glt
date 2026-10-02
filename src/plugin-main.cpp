@@ -1,3 +1,4 @@
+#include "api-key.hpp"
 #include <obs-module.h>
 
 extern struct obs_source_info live_translate_source_info;
@@ -14,6 +15,7 @@ extern "C" const char *obs_module_description(void)
 bool obs_module_load(void)
 {
     blog(LOG_INFO, "[live-translate] module loaded");
+    lt::api_key_load();
     obs_register_source(&live_translate_source_info);
     return true;
 }

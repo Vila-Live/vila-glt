@@ -1,3 +1,4 @@
+#include "api-key.hpp"
 #include "audio-convert.hpp"
 #include "audio-pacing.hpp"
 #include "languages.hpp"
@@ -56,6 +57,7 @@ struct SourceData {
     std::atomic<bool> program_active{false};
     std::atomic<uint32_t> state_version{1};
     uint32_t seen_version = 0;      // push loop only
+    uint32_t seen_key_version = 0;  // push loop only
     bool session_started = false;   // push loop only
     lt::SessionConfig applied;      // push loop only
 
@@ -175,8 +177,16 @@ void sync_input(SourceData *d)
 void source_update(void *data, obs_data_t *settings)
 {
     auto *d = static_cast<SourceData *>(data);
+    // The key field is write-only: a typed key moves to the shared, sealed key
+    // store and is erased from the source settings right away, so it never
+    // reaches the scene collection file or OBS WebSocket readers. An empty
+    // field means "no change", not "forget the key".
+    std::string typed_key = obs_data_get_string(settings, "api_key");
+    if (!typed_key.empty()) lt::api_key_set(typed_key);
+    obs_data_erase(settings, "api_key");
+
+    // api_key stays empty here; sync_session fills it from the key store.
     lt::SessionConfig next;
-    next.api_key = obs_data_get_string(settings, "api_key");
     next.target_lang = obs_data_get_string(settings, "target_lang");
     next.echo_target = obs_data_get_bool(settings, "echo_target");
     next.input_uuid = obs_data_get_string(settings, "input_source");
@@ -214,14 +224,18 @@ void source_deactivate(void *data)
 void sync_session(SourceData *d)
 {
     uint32_t version = d->state_version.load(std::memory_order_relaxed);
-    if (version == d->seen_version) return;
+    uint32_t key_version = lt::api_key_version();
+    if (version == d->seen_version && key_version == d->seen_key_version)
+        return;
     d->seen_version = version;
+    d->seen_key_version = key_version;
 
     lt::SessionConfig want;
     {
         std::lock_guard<std::mutex> lk(d->input_mtx);
         want = d->cfg;
     }
+    want.api_key = lt::api_key_get();
     if (!lt::session_should_run(want, d->program_active)) {
         if (d->session_started) {
             d->session.stop();
@@ -335,7 +349,7 @@ std::string status_text(SourceData *d)
         std::lock_guard<std::mutex> lk(d->input_mtx);
         if (d->cfg.input_uuid.empty())
             return obs_module_text("Select an input audio source.");
-        if (d->cfg.api_key.empty())
+        if (lt::api_key_get().empty())
             return obs_module_text("Enter a Gemini API key.");
         if (!d->input_weak)
             return obs_module_text("Input audio source not found.");
@@ -344,6 +358,12 @@ std::string status_text(SourceData *d)
         return obs_module_text("Paused: this source is hidden or not in the "
                                "active scene.");
     return d->session.status_text();
+}
+
+bool forget_key_clicked(obs_properties_t *, obs_property_t *, void *)
+{
+    lt::api_key_set("");
+    return true; // rebuild the properties so the key state text updates
 }
 
 obs_properties_t *source_properties(void *data)
@@ -371,13 +391,19 @@ obs_properties_t *source_properties(void *data)
         obs_module_text("Playback Delay (seconds)"),
         kMinPlaybackDelaySeconds, kMaxPlaybackDelaySeconds, 0.1);
 
-    obs_properties_add_text(props, "api_key", obs_module_text("Gemini API Key"),
-                            OBS_TEXT_PASSWORD);
     obs_properties_add_text(
-        props, "warn",
-        obs_module_text("Note: the API key is stored in plaintext in your "
-                        "scene collection file. Do not share that file."),
-        OBS_TEXT_INFO);
+        props, "api_key",
+        obs_module_text("Gemini API Key (shared by all sources; paste to set)"),
+        OBS_TEXT_PASSWORD);
+    const char *key_state =
+        lt::api_key_get().empty()
+            ? obs_module_text("API key: not set.")
+            : obs_module_text("API key: saved. It is kept outside the scene "
+                              "collection and is not shown here again.");
+    obs_properties_add_text(props, "key_state", key_state, OBS_TEXT_INFO);
+    obs_properties_add_button(props, "forget_key",
+                              obs_module_text("Forget saved API key"),
+                              forget_key_clicked);
     std::string status = status_text(static_cast<SourceData *>(data));
     obs_properties_add_text(props, "status", status.c_str(), OBS_TEXT_INFO);
     return props;

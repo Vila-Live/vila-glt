@@ -9,6 +9,7 @@ add_executable(unit-tests
   test-audio-pacing.cpp
   test-base64.cpp
   test-backoff.cpp
+  test-key-seal.cpp
   test-live-protocol.cpp
   test-output-delay.cpp
   test-ring-buffer.cpp
@@ -18,13 +19,16 @@ add_executable(unit-tests
   ${CMAKE_SOURCE_DIR}/src/audio-pacing.cpp
   ${CMAKE_SOURCE_DIR}/src/backoff.cpp
   ${CMAKE_SOURCE_DIR}/src/base64.cpp
+  ${CMAKE_SOURCE_DIR}/src/key-seal.cpp
   ${CMAKE_SOURCE_DIR}/src/live-protocol.cpp
   ${CMAKE_SOURCE_DIR}/src/output-delay.cpp
   ${CMAKE_SOURCE_DIR}/src/ring-buffer.cpp
   ${CMAKE_SOURCE_DIR}/src/session-config.cpp
 )
 target_include_directories(unit-tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(unit-tests PRIVATE Catch2::Catch2 nlohmann_json::nlohmann_json)
+target_link_libraries(unit-tests PRIVATE Catch2::Catch2 nlohmann_json::nlohmann_json
+  # crypt32 provides DPAPI, used by key-seal on Windows.
+  $<$<PLATFORM_ID:Windows>:crypt32>)
 
 include(CTest)
 include(Catch)

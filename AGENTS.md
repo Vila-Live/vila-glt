@@ -41,8 +41,7 @@ Install: copy `build_x64\RelWithDebInfo\obs-live-translate.dll` to
 - **Commits**: author as `weisunglee`, never add Claude/AI trailers. Use a feature
   branch; do not commit directly to `main` unless explicitly told.
 - Keep changes scoped. The non-goals (captions, one input into several languages
-  at once, encrypted key storage, explicit source-language selection) remain out
-  of scope.
+  at once, explicit source-language selection) remain out of scope.
 
 ## Architecture (quick map)
 
@@ -54,7 +53,9 @@ Install: copy `build_x64\RelWithDebInfo\obs-live-translate.dll` to
   (~600 ms) scheduling lead.
 - `translation-session.*` — one per source: WebSocket to Gemini (reconnect +
   backoff), input/output ring buffers, output-ready notification + interrupt.
-- `session-config.*`, `audio-pacing.*`, `audio-convert.*`, `ring-buffer.*`,
+- `api-key.*` — the one API key shared by all sources, stored in the plugin
+  config file (never in source settings / the scene collection).
+- `key-seal.*`, `session-config.*`, `audio-pacing.*`, `audio-convert.*`, `ring-buffer.*`,
   `backoff.*`, `live-protocol.*`, `output-delay.*`, `base64.*` — pure modules,
   each with a Catch2 test.
 

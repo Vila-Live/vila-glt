@@ -64,13 +64,23 @@ The plugin needs a Google **Gemini API key**:
 2. New users: AI Studio creates a default Google Cloud project and key
    automatically once you accept the Terms of Service. Otherwise click
    **Create API key**.
-3. Copy the key and paste it into the **Gemini API Key** field of each *Gemini
-   Translated Audio* source.
+3. Copy the key and paste it into the **Gemini API Key** field of any *Gemini
+   Translated Audio* source. One key is shared by all of them.
 
 Notes:
 
-- The key is stored **in plaintext** in your scene-collection file — don't share
-  that file.
+- The key is **not** stored in the scene collection. It moves to the plugin's
+  own config file (`plugin_config/obs-live-translate/api-key.json` in the OBS
+  config folder) and is erased from the source settings, so it cannot be read
+  back through OBS WebSocket and the field stays empty when you reopen it.
+- On **Windows** that file is encrypted with DPAPI and only opens for the same
+  Windows user on the same machine. On macOS/Linux there is no OS encryption
+  yet — the file is only encoded, so protect it like a password file.
+- This guards against leaking the key by sharing files or scenes; it does not
+  stop other software running under your own user account.
+- Use **Forget saved API key** in the source properties to remove it.
+- A scene collection saved by an older version of the plugin still contains the
+  key in plaintext (also in OBS's `.bak` copies) until it is saved again.
 - `gemini-3.5-live-translate-preview` usage is billed per Google's pricing;
   check current quotas and pricing in AI Studio
   ([pricing](https://ai.google.dev/gemini-api/docs/pricing)).
@@ -171,14 +181,11 @@ plugin support needed:
 | `target_lang` | string | BCP-47 code from [`src/languages.hpp`](src/languages.hpp) (e.g. `en`, `zh`, `ja`, `pt-BR`) — the value, not the display name |
 | `echo_target` | bool | output speech even when the input is already in the target language |
 | `playback_delay` | number | seconds to delay the translated audio stream, clamped to 0-30 |
-| `api_key` | string | Gemini API key (rarely sent remotely; clearing it stops the session) |
+| `api_key` | string | write-only: sets the shared Gemini API key; it is never returned and an empty value changes nothing |
 
 Notes:
 
 - `inputName` must match your OBS source name exactly.
-- Keep the request's default `overlay: true` (merge). With `overlay: false` OBS
-  first resets the source to defaults — and since `api_key` has no default, that
-  **clears the key and stops translation**.
 - Changing `target_lang`, `echo_target` or `api_key` reconnects the session, so
   expect a brief gap. Changing `input_source` or `playback_delay` does not.
 - This is **set-only**. The runtime connection status (Connecting / Connected /
@@ -248,6 +255,8 @@ src/
                          chunk → stream) + event-driven output push loop
   translation-session.*  per-source WebSocket session + audio buffers + reconnect
   session-config.*       when a session runs / needs to reconnect
+  api-key.*              the shared API key, kept in the plugin config file
+  key-seal.*             seals the stored key (DPAPI on Windows)
   live-protocol.*        build/parse Gemini Live API messages
   audio-pacing.*         OutputTimestamper (contiguous, lead-bounded timestamps)
   audio-convert.*        PCM downmix / conversion / chunking
@@ -296,8 +305,8 @@ language, so you only pick what to translate *into*.
 
 ## Non-goals (v1)
 
-Captions/subtitles, translating one input into several languages at once,
-encrypted key storage, and explicit source-language selection are out of scope.
+Captions/subtitles, translating one input into several languages at once, and
+explicit source-language selection are out of scope.
 
 ## License
 

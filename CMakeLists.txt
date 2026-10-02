@@ -40,7 +40,9 @@ endif()
 
 add_library(${CMAKE_PROJECT_NAME} MODULE
   src/plugin-main.cpp
+  src/api-key.cpp
   src/base64.cpp
+  src/key-seal.cpp
   src/audio-convert.cpp
   src/audio-pacing.cpp
   src/ring-buffer.cpp
@@ -57,6 +59,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
   nlohmann_json::nlohmann_json
   # bcrypt is a Windows crypto library needed by mbedTLS there; not on mac/Linux.
   $<$<PLATFORM_ID:Windows>:bcrypt>
+  # crypt32 provides DPAPI, used to seal the stored API key on Windows.
+  $<$<PLATFORM_ID:Windows>:crypt32>
 )
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
 
