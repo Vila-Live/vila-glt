@@ -2,23 +2,29 @@
   <img src="icon.png" alt="Gemini Live Translate for OBS" width="120">
 </p>
 
-# Gemini Live Translate for OBS
+# Live Translate for OBS
 
-[![Latest release](https://img.shields.io/github/v/release/weisunglee/obs-live-translate?sort=semver)](https://github.com/weisunglee/obs-live-translate/releases)
-[![Release build](https://github.com/weisunglee/obs-live-translate/actions/workflows/release.yaml/badge.svg)](https://github.com/weisunglee/obs-live-translate/actions/workflows/release.yaml)
 [![License: GPL v2](https://img.shields.io/badge/license-GPLv2-blue.svg)](LICENSE)
-![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 
-A native OBS Studio plugin (**Windows · macOS · Linux**) that does real-time
-**speech-to-speech** translation using the Google **Gemini Live API**
-(`gemini-3.5-live-translate-preview`). It captures a microphone's audio, streams
-it to Gemini, and plays the translated speech back as a separate OBS audio
-source you can route to its own track — so a stream/recording can carry both the
-original voice and a live translation.
+A native OBS Studio plugin that does real-time **speech-to-speech** translation
+using the Google **Gemini Live API** (`gemini-3.5-live-translate-preview`). It
+captures the audio of any OBS source — a microphone, a browser source, a media
+source — streams it to Gemini, and plays the translated speech back as a
+separate OBS audio source, so a stream/recording can carry both the original
+voice and a live translation. Several sources can be translated at once.
 
-> This plugin was built with significant assistance from AI (Claude). It is an
-> independent project and is not affiliated with or endorsed by the OBS Project
-> or Google. Bug reports and contributions are welcome.
+> **This is a fork** of
+> [weisunglee/obs-live-translate](https://github.com/weisunglee/obs-live-translate)
+> (*Gemini Live Translate for OBS*, v0.1.6) and behaves differently from it:
+> the original's microphone filter is gone, each *Live Translate* source picks
+> the source it translates and runs its own session, the API key is kept outside
+> the scene collection, and the model/language table is a JSON file. The
+> original's prebuilt packages do **not** contain these changes — build this
+> fork from source (see *Install*). Built and tested on **Windows** only; the
+> macOS and Linux builds inherited from the original are untested here.
+>
+> Built with significant assistance from AI (Claude). An independent project,
+> not affiliated with or endorsed by the OBS Project or Google.
 
 ## How it works
 
@@ -98,9 +104,8 @@ Notes:
 
 ## Status
 
-Released for **Windows, macOS and Linux** — grab a prebuilt package from the
-[Releases](https://github.com/weisunglee/obs-live-translate/releases) page
-(Windows is the tested platform; see the note under *Install*). Current behavior:
+Works on **Windows** (the only platform this fork has been built and tested
+on). There are no prebuilt packages of the fork yet. Current behavior:
 
 - ✅ Any audio source → Gemini streaming (continuous, including pause silence),
   translated audio played back via the OBS mixer.
@@ -144,25 +149,24 @@ Released for **Windows, macOS and Linux** — grab a prebuilt package from the
   beat after your last sentence before hitting stop so the trailing translation
   is captured. **Live streams** aren't affected.
 
-## Install (prebuilt)
+## Install
 
-Download the package for your platform from the
-[Releases](https://github.com/weisunglee/obs-live-translate/releases) page, **with
-OBS closed**:
+There are no prebuilt packages of this fork; the packages on the original
+project's Releases page are the older, filter-based plugin. Build it (see *Build
+from source*), then on **Windows**, with OBS closed, copy:
 
-- **Windows** — run `…-windows-x64-installer.exe` (it detects your OBS install
-  automatically), or extract `…-windows-x64.zip` into your OBS Studio directory
-  (e.g. `C:\Program Files\obs-studio\`). Unsigned, so SmartScreen may warn.
-- **macOS** — unzip `…-macos-universal.zip` and copy `obs-live-translate.plugin`
-  into `~/Library/Application Support/obs-studio/plugins/`. Unsigned / not
-  notarized; if Gatekeeper blocks it, run
-  `xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/obs-live-translate.plugin`.
-- **Linux** — extract `…-linux-x86_64.tar.gz` into `~/.config/obs-studio/plugins/`
-  (the `.so` should end up at
-  `~/.config/obs-studio/plugins/obs-live-translate/bin/64bit/obs-live-translate.so`).
+- `build_x64\RelWithDebInfo\obs-live-translate.dll` →
+  `C:\Program Files\obs-studio\obs-plugins\64bit\`
+- the `data\` folder (locale files and `models.json`) →
+  `C:\Program Files\obs-studio\data\obs-plugins\obs-live-translate\`
 
-> The macOS and Linux packages are produced by CI but **not yet verified on those
-> platforms** — feedback is welcome. Windows is the tested platform.
+The DLL alone also works: the interface then falls back to English and the model
+table to the copy embedded in the DLL.
+
+If the original plugin is installed, this replaces it (same file name). Scenes
+made with the original keep their *Gemini Translated Audio* sources, which now
+appear as *Live Translate* and need a source to translate picked; the old
+*Gemini Live Translate* filter no longer exists and is ignored.
 
 ## Usage
 
@@ -184,7 +188,8 @@ OBS closed**:
 
 Repeat for every audio source you want translated.
 
-> The screenshots in `screenshots/` still show the earlier filter-based setup.
+> The screenshots in `screenshots/` are from the original project and show its
+> filter-based setup, not this fork's properties.
 
 ## Remote control (OBS WebSocket)
 

@@ -8,9 +8,12 @@ An OBS audio source's audio is streamed to Gemini and the translated audio is
 emitted as a separate OBS audio source that can live on its own track. Several
 translations (one per input) can run at once.
 
-**The plugin is implemented and released.** See `README.md` for the architecture
-and behavior. Your job now is **maintenance and incremental changes**, not a
-green-field build.
+**This repo is a fork** of `weisunglee/obs-live-translate` (remote `upstream`,
+branched from its v0.1.6), owned by `nklisic`. It has diverged on purpose —
+per-source sessions instead of the mic filter + singleton, key storage in
+`.env`, the JSON model table — so do not "restore" upstream behavior. See
+`README.md` for the architecture and behavior. Your job is **maintenance and
+incremental changes**, not a green-field build.
 
 ## Build / test / deploy (Windows x64)
 
@@ -44,8 +47,10 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
   are verified by a full plugin build.
 - **Do not skip verification.** If a build/test can't run because a prerequisite
   (e.g. libobs) is missing, stop and report what is missing — don't claim done.
-- **Commits**: author as `weisunglee`, never add Claude/AI trailers. Use a feature
-  branch; do not commit directly to `main` unless explicitly told.
+- **Commits**: use the repo owner's configured git identity (`nklisic`) — never
+  author as someone else — and never add Claude/AI trailers. Our work lives on
+  `master`; `main` mirrors upstream and is not committed to. Do not push or
+  publish anything unless explicitly told.
 - Keep changes scoped. The non-goals (captions, one input into several languages
   at once, explicit source-language selection) remain out of scope.
 
