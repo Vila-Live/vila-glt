@@ -8,6 +8,7 @@
       "supports_echo": true,
       "languages": [
         {"code": "en", "name": "English"},
+        {"code": "sr", "name": "Српски (Serbian)"},
         {"code": "zh", "name": "中文 (Chinese)"},
         {"code": "ja", "name": "日本語 (Japanese)"},
         {"code": "ko", "name": "한국어 (Korean)"},
@@ -69,7 +70,6 @@
         {"code": "pt-PT", "name": "Português (Portuguese, Portugal)"},
         {"code": "pa", "name": "ਪੰਜਾਬੀ (Punjabi)"},
         {"code": "ro", "name": "Română (Romanian)"},
-        {"code": "sr", "name": "Српски (Serbian)"},
         {"code": "sd", "name": "سنڌي (Sindhi)"},
         {"code": "si", "name": "සිංහල (Sinhala)"},
         {"code": "sk", "name": "Slovenčina (Slovak)"},
