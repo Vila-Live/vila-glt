@@ -69,15 +69,19 @@ The plugin needs a Google **Gemini API key**:
 
 Notes:
 
-- The key is **not** stored in the scene collection. It moves to the plugin's
-  own config file (`plugin_config/obs-live-translate/api-key.json` in the OBS
-  config folder) and is erased from the source settings, so it cannot be read
-  back through OBS WebSocket and the field stays empty when you reopen it.
-- On **Windows** that file is encrypted with DPAPI and only opens for the same
-  Windows user on the same machine. On macOS/Linux there is no OS encryption
-  yet — the file is only encoded, so protect it like a password file.
-- This guards against leaking the key by sharing files or scenes; it does not
-  stop other software running under your own user account.
+- The key is **not** stored in the scene collection. It is saved as
+  `GEMINI_API_KEY=...` in a `.env` file in the OBS config folder
+  (`%APPDATA%\obs-studio\.env` on Windows, `~/.config/obs-studio/.env` on Linux,
+  `~/Library/Application Support/obs-studio/.env` on macOS) and erased from the
+  source settings, so it cannot be read back through OBS WebSocket and the field
+  stays empty when you reopen it. One key serves every source in every scene
+  collection.
+- The `.env` file is **plain text**, the same on every platform — protect it
+  like a password file (on Linux/macOS it is created readable by you only). You
+  can also create or edit it by hand; it is read when OBS starts. Other
+  variables in the file are left untouched.
+- This guards against leaking the key by sharing scenes or through OBS
+  WebSocket; it does not stop anyone who can read your OBS config folder.
 - Use **Forget saved API key** in the source properties to remove it.
 - A scene collection saved by an older version of the plugin still contains the
   key in plaintext (also in OBS's `.bak` copies) until it is saved again.
@@ -255,8 +259,8 @@ src/
                          chunk → stream) + event-driven output push loop
   translation-session.*  per-source WebSocket session + audio buffers + reconnect
   session-config.*       when a session runs / needs to reconnect
-  api-key.*              the shared API key, kept in the plugin config file
-  key-seal.*             seals the stored key (DPAPI on Windows)
+  api-key.*              the shared API key, kept in <OBS config>/.env
+  dotenv.*               minimal .env reading/editing
   live-protocol.*        build/parse Gemini Live API messages
   audio-pacing.*         OutputTimestamper (contiguous, lead-bounded timestamps)
   audio-convert.*        PCM downmix / conversion / chunking

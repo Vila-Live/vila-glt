@@ -177,8 +177,8 @@ void sync_input(SourceData *d)
 void source_update(void *data, obs_data_t *settings)
 {
     auto *d = static_cast<SourceData *>(data);
-    // The key field is write-only: a typed key moves to the shared, sealed key
-    // store and is erased from the source settings right away, so it never
+    // The key field is write-only: a typed key moves to the shared key store
+    // (the .env file in the OBS config folder) and is erased from the source settings right away, so it never
     // reaches the scene collection file or OBS WebSocket readers. An empty
     // field means "no change", not "forget the key".
     std::string typed_key = obs_data_get_string(settings, "api_key");

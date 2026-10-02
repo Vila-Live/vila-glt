@@ -4,10 +4,12 @@
 
 namespace lt {
 
-// The one Gemini API key shared by every translated-audio source. It lives in
-// the plugin's own config file (sealed, see key-seal.hpp) instead of the source
-// settings, so it is not written to the scene collection and cannot be read
-// back through OBS WebSocket.
+// The one Gemini API key shared by every translated-audio source in every
+// scene collection. It lives as GEMINI_API_KEY in a `.env` file in the OBS
+// config folder (next to global.ini) instead of the source settings, so it is
+// not written to the scene collection and cannot be read back through OBS
+// WebSocket. The file is plain text and the same on every platform; other
+// variables in it are left untouched.
 
 // Loads the stored key; call once at module load.
 void api_key_load();

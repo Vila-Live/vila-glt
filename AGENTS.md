@@ -53,9 +53,11 @@ Install: copy `build_x64\RelWithDebInfo\obs-live-translate.dll` to
   (~600 ms) scheduling lead.
 - `translation-session.*` — one per source: WebSocket to Gemini (reconnect +
   backoff), input/output ring buffers, output-ready notification + interrupt.
-- `api-key.*` — the one API key shared by all sources, stored in the plugin
-  config file (never in source settings / the scene collection).
-- `key-seal.*`, `session-config.*`, `audio-pacing.*`, `audio-convert.*`, `ring-buffer.*`,
+- `api-key.*` — the one API key shared by all sources, stored as
+  `GEMINI_API_KEY` in `<OBS config folder>/.env` (never in source settings / the
+  scene collection). Plain text by the owner's decision: no OS-specific secret
+  stores.
+- `dotenv.*`, `session-config.*`, `audio-pacing.*`, `audio-convert.*`, `ring-buffer.*`,
   `backoff.*`, `live-protocol.*`, `output-delay.*`, `base64.*` — pure modules,
   each with a Catch2 test.
 
