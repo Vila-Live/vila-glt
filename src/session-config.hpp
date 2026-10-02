@@ -10,10 +10,13 @@ struct SessionConfig {
     std::string target_lang;
     bool echo_target = true;
     std::string input_uuid; // UUID of the OBS source being translated
+    std::string key_name;   // .env variable of the chosen key; empty = default
+    bool enabled = true;    // the connection switch in the properties
 };
 
-// True iff a session should be running: it needs a key and an input, and its
-// source has to be active in the program (hiding the source is the off switch).
+// True iff a session should be running: it is switched on, has a key and an
+// input, and its source is active in the program (hiding the source also stops
+// it).
 bool session_should_run(const SessionConfig &c, bool source_active);
 
 // True iff moving from prev to next changes something the model is told at setup,

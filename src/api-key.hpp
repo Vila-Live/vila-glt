@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace lt {
 
@@ -16,6 +17,10 @@ namespace lt {
 void api_key_load();
 
 std::string api_key_get(const std::string &env_name);
+
+// The stored key variables of one provider: its base variable and any named
+// variants (see dotenv.hpp).
+std::vector<std::string> api_key_names(const std::string &base_env_name);
 
 // Stores a new key (an empty key forgets it). No-op if unchanged.
 void api_key_set(const std::string &env_name, const std::string &key);

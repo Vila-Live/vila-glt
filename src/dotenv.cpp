@@ -78,4 +78,55 @@ std::string dotenv_set(const std::string &text, const std::string &name,
     return out;
 }
 
+bool env_name_belongs(const std::string &base, const std::string &name)
+{
+    if (base.empty()) return false;
+    if (name == base) return true;
+    return name.size() > base.size() + 1 && name.compare(0, base.size(), base) == 0 &&
+           name[base.size()] == '_';
+}
+
+std::vector<std::string> dotenv_names(const std::string &text,
+                                      const std::string &base)
+{
+    std::vector<std::string> names;
+    for (const auto &line : split_lines(text)) {
+        std::string n, v;
+        if (!parse_line(line, n, v) || !env_name_belongs(base, n)) continue;
+        bool seen = false;
+        for (const auto &existing : names)
+            if (existing == n) seen = true;
+        // Only the last definition counts, so check the effective value.
+        if (!seen && !dotenv_get(text, n).empty()) names.push_back(n);
+    }
+    return names;
+}
+
+std::string env_name_with_label(const std::string &base,
+                                const std::string &label)
+{
+    std::string suffix;
+    for (char ch : label) {
+        unsigned char c = static_cast<unsigned char>(ch);
+        if (c >= 'a' && c <= 'z')
+            suffix += static_cast<char>(c - 'a' + 'A');
+        else if ((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))
+            suffix += static_cast<char>(c);
+        else if (!suffix.empty() && suffix.back() != '_')
+            suffix += '_';
+    }
+    while (!suffix.empty() && suffix.back() == '_') suffix.pop_back();
+    if (suffix.empty() || suffix == "DEFAULT") return base;
+    return base + "_" + suffix;
+}
+
+std::string env_label(const std::string &base, const std::string &name)
+{
+    if (name == base || !env_name_belongs(base, name)) return "";
+    std::string label = name.substr(base.size() + 1);
+    for (char &c : label)
+        if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+    return label;
+}
+
 }

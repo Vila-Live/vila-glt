@@ -4,7 +4,8 @@ namespace lt {
 
 bool session_should_run(const SessionConfig &c, bool source_active)
 {
-    return source_active && !c.api_key.empty() && !c.input_uuid.empty();
+    return c.enabled && source_active && !c.api_key.empty() &&
+           !c.input_uuid.empty();
 }
 
 bool session_needs_reconnect(const SessionConfig &prev,

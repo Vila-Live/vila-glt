@@ -27,7 +27,13 @@ ctest --test-dir build_x64 --output-on-failure
 ```
 
 Install: copy `build_x64\RelWithDebInfo\obs-live-translate.dll` to
-`C:\Program Files\obs-studio\obs-plugins\64bit\` (OBS must be closed).
+`C:\Program Files\obs-studio\obs-plugins\64bit\` and the `data\` folder to
+`C:\Program Files\obs-studio\data\obs-plugins\obs-live-translate\` (OBS must be
+closed). The DLL alone also works — UI texts then fall back to English and the
+model table to the copy embedded in the DLL.
+
+UI strings: use `T("Key", "English fallback")` in `source.cpp` and add the key
+to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
 
 ## Rules
 

@@ -91,6 +91,12 @@ std::string api_key_get(const std::string &env_name)
     return dotenv_get(g_env_text, env_name);
 }
 
+std::vector<std::string> api_key_names(const std::string &base_env_name)
+{
+    std::lock_guard<std::mutex> lk(g_mtx);
+    return dotenv_names(g_env_text, base_env_name);
+}
+
 void api_key_set(const std::string &env_name, const std::string &key)
 {
     std::lock_guard<std::mutex> lk(g_mtx);

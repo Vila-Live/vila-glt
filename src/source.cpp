@@ -1,6 +1,7 @@
 #include "api-key.hpp"
 #include "audio-convert.hpp"
 #include "audio-pacing.hpp"
+#include "dotenv.hpp"
 #include "model-store.hpp"
 #include "output-delay.hpp"
 #include "session-config.hpp"
@@ -82,9 +83,18 @@ bool is_translated_source(obs_source_t *source)
     return std::strcmp(obs_source_get_unversioned_id(source), kSourceId) == 0;
 }
 
+// Localized text for `key`, or the English `fallback` when the locale files are
+// not installed next to the plugin (a DLL-only install still reads properly).
+const char *T(const char *key, const char *fallback)
+{
+    const char *text = nullptr;
+    if (obs_module_get_string(key, &text) && text && *text) return text;
+    return fallback;
+}
+
 const char *source_get_name(void *)
 {
-    return obs_module_text("Live Translate");
+    return T("SourceName", "Live Translate");
 }
 
 void create_resampler(SourceData *d)
@@ -182,6 +192,8 @@ void source_update(void *data, obs_data_t *settings)
     // properties (see save_key_clicked) and is never read here.
     lt::SessionConfig next;
     next.model = obs_data_get_string(settings, "model");
+    next.key_name = obs_data_get_string(settings, "api_key_name");
+    next.enabled = obs_data_get_bool(settings, "enabled");
     next.target_lang = obs_data_get_string(settings, "target_lang");
     next.echo_target = obs_data_get_bool(settings, "echo_target");
     next.input_uuid = obs_data_get_string(settings, "input_source");
@@ -195,6 +207,14 @@ void source_update(void *data, obs_data_t *settings)
     }
     sync_input(d);
     d->state_version.fetch_add(1, std::memory_order_relaxed);
+}
+
+// The .env variable holding the key this source uses: the selected one if it
+// belongs to the model's provider, else the provider's default variable.
+std::string key_env_name(const lt::ModelInfo *model, const std::string &selected)
+{
+    if (lt::env_name_belongs(model->api_key_env, selected)) return selected;
+    return model->api_key_env;
 }
 
 void source_activate(void *data)
@@ -235,7 +255,7 @@ void sync_session(SourceData *d)
     const lt::ModelInfo *model = lt::find_model(lt::model_catalog(), want.model);
     if (model) {
         want.model = model->id;
-        want.api_key = lt::api_key_get(model->api_key_env);
+        want.api_key = lt::api_key_get(key_env_name(model, want.key_name));
         want.echo_target = want.echo_target && model->supports_echo;
     }
     if (!model || !lt::session_should_run(want, d->program_active)) {
@@ -329,10 +349,11 @@ void migrate_legacy_key(obs_data_t *settings)
 }
 
 // Called whenever OBS serializes the source: whatever is sitting in the key
-// editor's scratch field must not reach the scene collection file.
+// editor's scratch fields must not reach the scene collection file.
 void source_save(void *, obs_data_t *settings)
 {
     obs_data_erase(settings, "api_key");
+    obs_data_erase(settings, "key_label");
 }
 
 void *source_create(obs_data_t *settings, obs_source_t *source)
@@ -362,45 +383,113 @@ void source_destroy(void *data)
     delete d;
 }
 
+struct InputListCtx {
+    obs_property_t *list;
+    std::string selected_uuid;
+};
+
+// Offer exactly what the OBS Audio Mixer shows: sources whose audio is active
+// (a camera whose microphone is disabled is not), minus other Live Translate
+// sources. The currently selected input stays listed even if its audio is off
+// right now, so reopening the properties does not silently drop it.
 bool add_input_cb(void *param, obs_source_t *source)
 {
-    auto *list = static_cast<obs_property_t *>(param);
-    if ((obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO) &&
-        !is_translated_source(source))
-        obs_property_list_add_string(list, obs_source_get_name(source),
-                                     obs_source_get_uuid(source));
+    auto *ctx = static_cast<InputListCtx *>(param);
+    if (is_translated_source(source)) return true;
+    if (!(obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO)) return true;
+    const char *uuid = obs_source_get_uuid(source);
+    if (obs_source_audio_active(source) || ctx->selected_uuid == uuid)
+        obs_property_list_add_string(ctx->list, obs_source_get_name(source),
+                                     uuid);
     return true;
 }
 
-std::string status_text(SourceData *d, const lt::ModelInfo *model)
+struct Status {
+    std::string text;
+    enum obs_text_info_type level;
+};
+
+Status current_status(SourceData *d, const lt::ModelInfo *model)
 {
-    if (!d) return obs_module_text("Idle");
-    if (!model) return obs_module_text("No live translate model available.");
+    if (!d) return {T("Status.Idle", "Idle"), OBS_TEXT_INFO_NORMAL};
+    if (!model)
+        return {T("Status.NoModel", "No live translate model available."),
+                OBS_TEXT_INFO_ERROR};
+    bool enabled;
     {
         std::lock_guard<std::mutex> lk(d->input_mtx);
+        enabled = d->cfg.enabled;
         if (d->cfg.input_uuid.empty())
-            return obs_module_text("Select a source to translate.");
-        if (lt::api_key_get(model->api_key_env).empty())
-            return obs_module_text("Set the API key for this model.");
+            return {T("Status.SelectSource", "Select a source to translate."),
+                    OBS_TEXT_INFO_WARNING};
+        if (lt::api_key_get(key_env_name(model, d->cfg.key_name)).empty())
+            return {T("Status.SetKey", "Set the API key for this model."),
+                    OBS_TEXT_INFO_WARNING};
         if (!d->input_weak)
-            return obs_module_text("Source to translate not found.");
+            return {T("Status.SourceNotFound", "Source to translate not found."),
+                    OBS_TEXT_INFO_WARNING};
     }
+    if (!enabled)
+        return {T("Status.Off", "Off: the connection is switched off."),
+                OBS_TEXT_INFO_WARNING};
     if (!d->program_active)
-        return obs_module_text("Paused: this source is hidden or not in the "
-                               "active scene.");
-    return d->session.status_text();
+        return {T("Status.Paused", "Paused: this source is hidden or not in "
+                                   "the active scene."),
+                OBS_TEXT_INFO_WARNING};
+
+    switch (d->session.status()) {
+    case lt::ConnStatus::Connected:
+        return {T("Status.Connected", "Connected"), OBS_TEXT_INFO_NORMAL};
+    case lt::ConnStatus::Connecting:
+        return {T("Status.Connecting", "Connecting..."), OBS_TEXT_INFO_NORMAL};
+    case lt::ConnStatus::Reconnecting:
+        return {T("Status.Reconnecting", "Reconnecting..."),
+                OBS_TEXT_INFO_WARNING};
+    case lt::ConnStatus::AuthError:
+        // Carries the provider's own error message.
+        return {d->session.status_text(), OBS_TEXT_INFO_ERROR};
+    case lt::ConnStatus::Idle:
+        break;
+    }
+    return {T("Status.Idle", "Idle"), OBS_TEXT_INFO_NORMAL};
 }
 
-std::string key_state_text(const lt::ModelInfo *model)
+void show_status(obs_properties_t *props, SourceData *d,
+                 const lt::ModelInfo *model)
 {
-    std::string hint =
-        model ? lt::api_key_hint(lt::api_key_get(model->api_key_env)) : "";
-    if (hint.empty()) return obs_module_text("API key: not set");
-    return std::string(obs_module_text("API key: saved")) + " (" + hint + ")";
+    obs_property_t *p = obs_properties_get(props, "status");
+    if (!p) return;
+    Status s = current_status(d, model);
+    obs_property_set_description(p, s.text.c_str());
+    obs_property_text_set_info_type(p, s.level);
+}
+
+// The key dropdown: one entry per stored key of the model's provider, shown as
+// "<name> (...last four)". The provider's default key has the value "" so a
+// source that never chose a key uses it.
+void fill_key_list(obs_properties_t *props, const lt::ModelInfo *model)
+{
+    obs_property_t *keys = obs_properties_get(props, "api_key_name");
+    obs_property_list_clear(keys);
+    std::vector<std::string> names;
+    if (model) names = lt::api_key_names(model->api_key_env);
+    if (names.empty()) {
+        obs_property_list_add_string(keys, T("ApiKey.NotSet", "not set"), "");
+        return;
+    }
+    for (const auto &name : names) {
+        std::string label = lt::env_label(model->api_key_env, name);
+        bool is_default = name == model->api_key_env;
+        if (label.empty()) label = T("ApiKey.Default", "default");
+        std::string text =
+            label + " (" + lt::api_key_hint(lt::api_key_get(name)) + ")";
+        obs_property_list_add_string(keys, text.c_str(),
+                                     is_default ? "" : name.c_str());
+    }
 }
 
 // Everything in the properties that depends on the selected model: the language
-// list, whether the echo option applies, and which provider's key is shown.
+// list, whether the echo option applies, and which provider's keys are listed.
 void apply_model_to_properties(obs_properties_t *props,
                                const lt::ModelInfo *model)
 {
@@ -412,8 +501,7 @@ void apply_model_to_properties(obs_properties_t *props,
 
     obs_property_set_visible(obs_properties_get(props, "echo_target"),
                              model && model->supports_echo);
-    if (obs_property_t *state = obs_properties_get(props, "key_state"))
-        obs_property_set_description(state, key_state_text(model).c_str());
+    fill_key_list(props, model);
 }
 
 bool model_modified(void *, obs_properties_t *props, obs_property_t *,
@@ -423,44 +511,71 @@ bool model_modified(void *, obs_properties_t *props, obs_property_t *,
     return true;
 }
 
-// Shows or hides the key editor (field + Save/Forget) in place of the Edit
-// button.
+// Shows or hides the key editor (name + key fields, Save/Remove) in place of
+// the Edit button.
 void show_key_editor(obs_properties_t *props, bool editing)
 {
     obs_property_set_visible(obs_properties_get(props, "edit_key"), !editing);
+    obs_property_set_visible(obs_properties_get(props, "key_label"), editing);
     obs_property_set_visible(obs_properties_get(props, "api_key"), editing);
     obs_property_set_visible(obs_properties_get(props, "save_key"), editing);
-    obs_property_set_visible(obs_properties_get(props, "forget_key"), editing);
+    obs_property_set_visible(obs_properties_get(props, "remove_key"), editing);
 }
 
-bool edit_key_clicked(obs_properties_t *props, obs_property_t *, void *)
+// Opens the editor on the selected key: its name is prefilled, so Save replaces
+// that key, while typing another name adds a new key.
+bool edit_key_clicked(obs_properties_t *props, obs_property_t *, void *data)
 {
+    auto *d = static_cast<SourceData *>(data);
+    obs_data_t *settings = obs_source_get_settings(d->context);
+    if (const lt::ModelInfo *model = model_from_settings(settings)) {
+        std::string selected = key_env_name(
+            model, obs_data_get_string(settings, "api_key_name"));
+        obs_data_set_string(
+            settings, "key_label",
+            lt::env_label(model->api_key_env, selected).c_str());
+    }
+    obs_data_release(settings);
     show_key_editor(props, true);
     return true;
 }
 
-// Ends key editing: stores (or forgets) the key of the selected model's
-// provider, clears the scratch field and refreshes the key/status lines.
-bool finish_key_edit(obs_properties_t *props, void *data, bool forget)
+// Ends key editing. Save stores the typed key under the typed name and selects
+// it; Remove deletes the selected key. The scratch fields are cleared either
+// way, so a key never stays in the source settings.
+bool finish_key_edit(obs_properties_t *props, void *data, bool remove)
 {
     auto *d = static_cast<SourceData *>(data);
     obs_data_t *settings = obs_source_get_settings(d->context);
     const lt::ModelInfo *model = model_from_settings(settings);
-    std::string typed = obs_data_get_string(settings, "api_key");
     if (model) {
-        if (forget)
-            lt::api_key_set(model->api_key_env, "");
-        else if (!typed.empty())
-            lt::api_key_set(model->api_key_env, typed);
+        const std::string &base = model->api_key_env;
+        if (remove) {
+            lt::api_key_set(
+                key_env_name(model,
+                             obs_data_get_string(settings, "api_key_name")),
+                "");
+            obs_data_set_string(settings, "api_key_name", "");
+        } else {
+            std::string typed = obs_data_get_string(settings, "api_key");
+            if (!typed.empty()) {
+                std::string env = lt::env_name_with_label(
+                    base, obs_data_get_string(settings, "key_label"));
+                lt::api_key_set(env, typed);
+                obs_data_set_string(settings, "api_key_name",
+                                    env == base ? "" : env.c_str());
+            }
+        }
     }
     obs_data_erase(settings, "api_key");
+    obs_data_erase(settings, "key_label");
     obs_data_release(settings);
+    // The selected key may have changed without OBS noticing.
+    obs_source_update(d->context, nullptr);
 
+    fill_key_list(props, model);
     show_key_editor(props, false);
-    obs_property_set_description(obs_properties_get(props, "key_state"),
-                                 key_state_text(model).c_str());
-    obs_property_set_description(obs_properties_get(props, "status"),
-                                 status_text(d, model).c_str());
+    show_status(props, d, model);
     return true;
 }
 
@@ -469,79 +584,118 @@ bool save_key_clicked(obs_properties_t *props, obs_property_t *, void *data)
     return finish_key_edit(props, data, false);
 }
 
-bool forget_key_clicked(obs_properties_t *props, obs_property_t *, void *data)
+bool remove_key_clicked(obs_properties_t *props, obs_property_t *, void *data)
 {
     return finish_key_edit(props, data, true);
+}
+
+// OBS does not refresh an open properties window by itself, so the status line
+// is a snapshot; this button takes a new one.
+bool refresh_status_clicked(obs_properties_t *props, obs_property_t *,
+                            void *data)
+{
+    auto *d = static_cast<SourceData *>(data);
+    obs_data_t *settings = obs_source_get_settings(d->context);
+    const lt::ModelInfo *model = model_from_settings(settings);
+    obs_data_release(settings);
+    show_status(props, d, model);
+    return true;
 }
 
 obs_properties_t *source_properties(void *data)
 {
     auto *d = static_cast<SourceData *>(data);
+    const lt::ModelInfo *model = lt::find_model(lt::model_catalog(), "");
+    std::string selected_input;
+    if (d) {
+        obs_data_t *settings = obs_source_get_settings(d->context);
+        model = model_from_settings(settings);
+        selected_input = obs_data_get_string(settings, "input_source");
+        obs_data_release(settings);
+    }
+
     obs_properties_t *props = obs_properties_create();
 
-    obs_property_t *inputs = obs_properties_add_list(
-        props, "input_source", obs_module_text("Source to translate"),
-        OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
-    obs_property_list_add_string(inputs, obs_module_text("(none)"), "");
-    obs_enum_sources(add_input_cb, inputs);
-
+    // Engine: which model translates, and with which key. The stored key is
+    // never put into a field: Edit opens empty fields for a new key, Save moves
+    // it to the key store and closes the editor again.
+    obs_properties_t *engine = obs_properties_create();
     obs_property_t *models = obs_properties_add_list(
-        props, "model", obs_module_text("Live translate model"),
+        engine, "model", T("Model", "Live translate model"),
         OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
     for (const auto &m : lt::model_catalog())
         obs_property_list_add_string(models, m.name.c_str(), m.id.c_str());
     obs_property_set_modified_callback2(models, model_modified, nullptr);
-
-    // The stored key is never put into a field. Edit opens an empty field for a
-    // new key; Save moves it to the key store and closes the editor again.
-    obs_properties_add_text(props, "key_state", "", OBS_TEXT_INFO);
+    obs_properties_add_list(engine, "api_key_name", T("ApiKey", "API key"),
+                            OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
     if (d) {
-        obs_properties_add_button2(props, "edit_key", obs_module_text("Edit"),
+        obs_properties_add_button2(engine, "edit_key", T("ApiKey.Edit", "Edit"),
                                    edit_key_clicked, d);
-        obs_properties_add_text(props, "api_key", obs_module_text("New API key"),
+        obs_properties_add_text(
+            engine, "key_label",
+            T("ApiKey.Name", "Key name (empty = default)"), OBS_TEXT_DEFAULT);
+        obs_properties_add_text(engine, "api_key",
+                                T("ApiKey.New", "New API key"),
                                 OBS_TEXT_PASSWORD);
-        obs_properties_add_button2(props, "save_key",
-                                   obs_module_text("Save API key"),
+        obs_properties_add_button2(engine, "save_key", T("ApiKey.Save", "Save"),
                                    save_key_clicked, d);
-        obs_properties_add_button2(props, "forget_key",
-                                   obs_module_text("Forget API key"),
-                                   forget_key_clicked, d);
-        show_key_editor(props, false);
+        obs_properties_add_button2(engine, "remove_key",
+                                   T("ApiKey.Remove", "Remove"),
+                                   remove_key_clicked, d);
     }
+    obs_properties_add_group(props, "engine", T("Group.Engine", "Engine"),
+                             OBS_GROUP_NORMAL, engine);
 
-    obs_properties_add_list(props, "target_lang",
-                            obs_module_text("Target language"),
+    // Translate Settings: what is translated, into which language, and how.
+    obs_properties_t *translate = obs_properties_create();
+    obs_property_t *inputs = obs_properties_add_list(
+        translate, "input_source", T("Source", "Source to translate"),
+        OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
+    obs_property_list_add_string(inputs, T("Source.None", "(none)"), "");
+    InputListCtx ctx{inputs, selected_input};
+    obs_enum_sources(add_input_cb, &ctx);
+    obs_properties_add_list(translate, "target_lang",
+                            T("TargetLanguage", "Target language"),
                             OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
     obs_properties_add_bool(
-        props, "echo_target",
-        obs_module_text("Repeat speech that is already in the target language"));
+        translate, "echo_target",
+        T("Echo", "Repeat speech that is already in the target language"));
     obs_properties_add_float_slider(
-        props, "playback_delay",
-        obs_module_text("Delay for translated audio (seconds)"),
+        translate, "playback_delay",
+        T("Delay", "Delay for translated audio (seconds)"),
         kMinPlaybackDelaySeconds, kMaxPlaybackDelaySeconds, 0.1);
+    obs_properties_add_group(props, "translate",
+                             T("Group.Translate", "Translate Settings"),
+                             OBS_GROUP_NORMAL, translate);
 
-    const lt::ModelInfo *model = nullptr;
-    if (d) {
-        obs_data_t *settings = obs_source_get_settings(d->context);
-        model = model_from_settings(settings);
-        obs_data_release(settings);
-    } else {
-        model = lt::find_model(lt::model_catalog(), "");
-    }
-    obs_properties_add_text(props, "status", status_text(d, model).c_str(),
-                            OBS_TEXT_INFO);
+    // Connection: the group's own checkbox is the "enabled" setting, the manual
+    // on/off switch for the session.
+    obs_properties_t *connection = obs_properties_create();
+    obs_properties_add_text(connection, "status", "", OBS_TEXT_INFO);
+    if (d)
+        obs_properties_add_button2(connection, "refresh_status",
+                                   T("Status.Refresh", "Refresh status"),
+                                   refresh_status_clicked, d);
+    obs_properties_add_group(props, "enabled",
+                             T("Group.Connection", "Connection"),
+                             OBS_GROUP_CHECKABLE, connection);
+
     apply_model_to_properties(props, model);
+    show_key_editor(props, false);
+    show_status(props, d, model);
     return props;
 }
 
 void source_defaults(obs_data_t *settings)
 {
     const lt::ModelInfo *first = lt::find_model(lt::model_catalog(), "");
-    obs_data_set_default_string(settings, "input_source", "");
     obs_data_set_default_string(settings, "model", first ? first->id.c_str() : "");
+    obs_data_set_default_string(settings, "api_key_name", "");
+    obs_data_set_default_string(settings, "input_source", "");
     obs_data_set_default_string(settings, "target_lang", "en");
     obs_data_set_default_bool(settings, "echo_target", false);
     obs_data_set_default_double(settings, "playback_delay", 0.0);
+    obs_data_set_default_bool(settings, "enabled", true);
 }
 
 } // namespace

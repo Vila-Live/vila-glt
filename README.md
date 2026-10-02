@@ -64,10 +64,14 @@ The plugin needs a Google **Gemini API key**:
 2. New users: AI Studio creates a default Google Cloud project and key
    automatically once you accept the Terms of Service. Otherwise click
    **Create API key**.
-3. In the properties of any *Live Translate* source click **Edit** next to
-   *API key*, paste the key into the field that opens and click **Save API
-   key**. The line then reads *API key: saved (...xxxx)*, showing only the last
-   four characters. One key is shared by all sources.
+3. In the properties of any *Live Translate* source, section **Engine**, click
+   **Edit**, paste the key into *New API key* and click **Save**. The *API key*
+   list then shows it as *default (...xxxx)* — only the last four characters.
+   The key is shared by all sources.
+
+   To keep several keys, type a **Key name** before saving (e.g. `studio`); each
+   source then picks its key in the *API key* list. **Edit** → **Remove**
+   deletes the selected key.
 
 Notes:
 
@@ -75,16 +79,16 @@ Notes:
   `GEMINI_API_KEY=...` in a `.env` file in the OBS config folder
   (`%APPDATA%\obs-studio\.env` on Windows, `~/.config/obs-studio/.env` on Linux,
   `~/Library/Application Support/obs-studio/.env` on macOS). It is never put
-  back into the properties and cannot be read or set through OBS WebSocket. One
-  key per provider serves every source in every scene collection; the model
-  table names the variable each model uses.
+  back into the properties and cannot be read or set through OBS WebSocket. The
+  keys serve every source in every scene collection; the model table names the
+  variable each model uses, and named keys are stored as variants of it
+  (`GEMINI_API_KEY_STUDIO=...`).
 - The `.env` file is **plain text**, the same on every platform — protect it
   like a password file (on Linux/macOS it is created readable by you only). You
   can also create or edit it by hand; it is read when OBS starts. Other
   variables in the file are left untouched.
 - This guards against leaking the key by sharing scenes or through OBS
   WebSocket; it does not stop anyone who can read your OBS config folder.
-- **Edit** → **Forget API key** removes it.
 - A scene collection saved by an older version of the plugin still contains the
   key in plaintext (also in OBS's `.bak` copies) until it is saved again; on
   load that key is moved to the `.env` file if none is stored yet.
@@ -119,7 +123,15 @@ Released for **Windows, macOS and Linux** — grab a prebuilt package from the
   languages); each has its own connection, language and settings. Other
   *Live Translate* sources are not offered as inputs, so a translation
   is never translated again.
-- ✅ Hiding the source is the off switch. A session only runs while its *Live
+- ✅ The **Connection** section's checkbox switches the session on and off by
+  hand (on by default); its status line is coloured by severity and has a
+  **Refresh status** button, since OBS does not refresh open properties itself.
+- ✅ The *Source to translate* list offers the sources shown in the OBS Audio
+  Mixer (audio actually active), so a camera whose microphone is disabled is
+  not listed.
+- ✅ Interface texts are localized (`data/locale`: English, Serbian Latin and
+  Cyrillic); without the locale files the plugin falls back to English.
+- ✅ Hiding the source also stops it. A session only runs while its *Live
   Translate* source is active in the program: hide it (eye icon, or an
   OBS show/hide hotkey) or switch to a scene without it and the connection is
   closed, so nothing is streamed to Gemini. Showing it again reconnects, which
@@ -157,10 +169,14 @@ OBS closed**:
 1. Add a **Live Translate** source to your scene (Sources → **+** →
    *Live Translate*).
 
-2. In its properties pick the **Source to translate**, the **Live translate
-   model** and the **Target language**, and set the API key once (**Edit**).
-   Once it connects the status reads *Connected* (reopen the properties to
-   refresh it).
+2. In its properties:
+   - **Engine** — pick the **Live translate model** and set the API key once
+     (**Edit**).
+   - **Translate Settings** — pick the **Source to translate** and the **Target
+     language**; optionally *Repeat speech that is already in the target
+     language* and *Delay for translated audio*.
+   - **Connection** — leave it switched on. Once it connects the status reads
+     *Connected* (use **Refresh status**).
 
 3. The source plays the translated voice. Mix it against the original in the
    OBS mixer (e.g. lower the original under the translation for a voice-over),
@@ -192,6 +208,8 @@ plugin support needed:
 | `target_lang` | string | language code from [`data/models.json`](data/models.json) (e.g. `en`, `zh`, `ja`, `pt-BR`) — the value, not the display name |
 | `echo_target` | bool | repeat speech that is already in the target language |
 | `playback_delay` | number | seconds to delay the translated audio stream, clamped to 0-30 |
+| `enabled` | bool | the Connection switch: `false` closes the session, `true` reconnects |
+| `api_key_name` | string | which stored key to use: the `.env` variable name of a named key, or empty for the default one |
 
 Notes:
 

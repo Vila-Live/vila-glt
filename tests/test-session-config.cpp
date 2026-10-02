@@ -38,6 +38,15 @@ TEST_CASE("session does not run while its source is not active in the program")
     REQUIRE_FALSE(lt::session_should_run(valid(), false));
 }
 
+TEST_CASE("session does not run while its connection is switched off")
+{
+    SessionConfig off = valid();
+    off.enabled = false;
+    REQUIRE_FALSE(lt::session_should_run(off, true));
+    // Switched on is the default.
+    REQUIRE(SessionConfig{}.enabled);
+}
+
 TEST_CASE("changing what Gemini sees at setup requires a reconnect")
 {
     SessionConfig key = valid();
