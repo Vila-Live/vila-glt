@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="icon.png" alt="Gemini Live Translate for OBS" width="120">
+  <img src="media/icon.png" alt="Vila GLT — Live Translate for OBS" width="120">
 </p>
 
-# Live Translate for OBS
+# Vila GLT — Live Translate for OBS (`obs-vila-glt`)
 
 [![License: GPL v2](https://img.shields.io/badge/license-GPLv2-blue.svg)](LICENSE)
 
@@ -13,18 +13,18 @@ source — streams it to Gemini, and plays the translated speech back as a
 separate OBS audio source, so a stream/recording can carry both the original
 voice and a live translation. Several sources can be translated at once.
 
-> **This is a fork** of
+> **Fork & Attribution:** `obs-vila-glt` is a fork of
 > [weisunglee/obs-live-translate](https://github.com/weisunglee/obs-live-translate)
-> (*Gemini Live Translate for OBS*, v0.1.6) and behaves differently from it:
-> the original's microphone filter is gone, each *Live Translate* source picks
-> the source it translates and runs its own session, the API key is kept outside
-> the scene collection, and the model/language table is a JSON file. The
-> original's prebuilt packages do **not** contain these changes — build this
-> fork from source (see *Install*). Built and tested on **Windows** only; the
-> macOS and Linux builds inherited from the original are untested here.
+> (*Gemini Live Translate for OBS*, v0.1.6, by **Only26k / weisunglee**),
+> redesigned for broadcast production: the original's microphone filter +
+> singleton architecture is replaced by independent per-source translation
+> sessions, API keys are stored outside the scene collection in `.env`, the
+> model/language catalog is driven by JSON, and sessions auto-reconnect on
+> transient drops or auto-hide their scene item on fatal errors.
 >
-> Built with significant assistance from AI (Claude). An independent project,
-> not affiliated with or endorsed by the OBS Project or Google.
+> Built and tested on **Windows** only; the macOS and Linux builds inherited
+> from the original are untested here. An independent project, not affiliated
+> with or endorsed by the OBS Project or Google.
 
 ## How it works
 
@@ -157,22 +157,17 @@ on). There are no prebuilt packages of the fork yet. Current behavior:
 
 ## Install
 
-There are no prebuilt packages of this fork; the packages on the original
-project's Releases page are the older, filter-based plugin. Build it (see *Build
-from source*), then on **Windows**, with OBS closed, copy:
+Build the plugin (see *Build from source*) or run the Inno Setup installer, then on **Windows**, with OBS closed, copy:
 
-- `build_x64\RelWithDebInfo\obs-live-translate.dll` →
+- `build_x64\RelWithDebInfo\obs-vila-glt.dll` →
   `C:\Program Files\obs-studio\obs-plugins\64bit\`
 - the `data\` folder (locale files and `models.json`) →
-  `C:\Program Files\obs-studio\data\obs-plugins\obs-live-translate\`
+  `C:\Program Files\obs-studio\data\obs-plugins\obs-vila-glt\`
 
 The DLL alone also works: the interface then falls back to English and the model
 table to the copy embedded in the DLL.
 
-If the original plugin is installed, this replaces it (same file name). Scenes
-made with the original keep their *Gemini Translated Audio* sources, which now
-appear as *Live Translate* and need a source to translate picked; the old
-*Gemini Live Translate* filter no longer exists and is ignored.
+> Note: Since `obs-vila-glt` uses its own module filename (`obs-vila-glt.dll`), do not keep the upstream `obs-live-translate.dll` installed at the same time, as both register the `gemini_translated_audio_source` source ID.
 
 ## Usage
 
@@ -251,7 +246,7 @@ when it is built, so the plugin works as a single binary.
 ```
 
 To add or change a model without rebuilding, put a `models.json` of the same
-shape into `plugin_config/obs-live-translate/` in the OBS config folder: a model
+shape into `plugin_config/obs-vila-glt/` in the OBS config folder: a model
 with an existing `id` replaces the built-in one, new ids are added. It is read
 when OBS starts.
 
@@ -267,18 +262,18 @@ IXWebSocket + mbedTLS) are fetched by CMake; libobs/obs-deps come from
 `-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF` flag keeps third-party warnings from
 failing the build.
 
-**Windows** (Visual Studio 2022) — produces `build_x64\RelWithDebInfo\obs-live-translate.dll`:
+**Windows** (Visual Studio 2022) — produces `build_x64\RelWithDebInfo\obs-vila-glt.dll`:
 
 ```powershell
 cmake --preset windows-x64 -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
 cmake --build --preset windows-x64
 ```
 
-**macOS** (Xcode 16+, universal) — produces `build_macos/RelWithDebInfo/obs-live-translate.plugin`:
+**macOS** (Xcode 16+, universal) — produces `build_macos/RelWithDebInfo/obs-vila-glt.plugin`:
 
 ```bash
 cmake --preset macos -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
-cmake --build --preset macos --target obs-live-translate
+cmake --build --preset macos --target obs-vila-glt
 ```
 
 **Linux** — libobs comes from the obsproject PPA; install build deps first:
@@ -288,7 +283,7 @@ sudo add-apt-repository --yes ppa:obsproject/obs-studio
 sudo apt-get update
 sudo apt-get install -y obs-studio libsimde-dev libmbedtls-dev cmake ninja-build pkg-config
 cmake --preset ubuntu-x86_64 -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
-cmake --build --preset ubuntu-x86_64 --target obs-live-translate   # build_x86_64/obs-live-translate.so
+cmake --build --preset ubuntu-x86_64 --target obs-vila-glt   # build_x86_64/obs-vila-glt.so
 ```
 
 (The exact CI steps live in [`.github/workflows/release.yaml`](.github/workflows/release.yaml).)

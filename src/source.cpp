@@ -760,6 +760,7 @@ struct obs_source_info live_translate_source_info = [] {
     info.id = "gemini_translated_audio_source";
     info.type = OBS_SOURCE_TYPE_INPUT;
     info.output_flags = OBS_SOURCE_AUDIO;
+    info.icon_type = OBS_ICON_TYPE_AUDIO_OUTPUT;
     info.get_name = source_get_name;
     info.create = source_create;
     info.destroy = source_destroy;

@@ -29,9 +29,9 @@ cmake --build --preset windows-x64 --target unit-tests   # pure-logic tests, no 
 ctest --test-dir build_x64 --output-on-failure
 ```
 
-Install: copy `build_x64\RelWithDebInfo\obs-live-translate.dll` to
+Install: copy `build_x64\RelWithDebInfo\obs-vila-glt.dll` to
 `C:\Program Files\obs-studio\obs-plugins\64bit\` and the `data\` folder to
-`C:\Program Files\obs-studio\data\obs-plugins\obs-live-translate\` (OBS must be
+`C:\Program Files\obs-studio\data\obs-plugins\obs-vila-glt\` (OBS must be
 closed). The DLL alone also works — UI texts then fall back to English and the
 model table to the copy embedded in the DLL.
 

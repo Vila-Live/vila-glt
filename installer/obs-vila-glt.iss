@@ -1,17 +1,17 @@
-; Inno Setup script for OBS Live Translate.
-; Compiled in CI with:  ISCC /DMyAppVersion=<version> installer\obs-live-translate.iss
-; Installs the plugin DLL into the detected OBS Studio install directory.
+; Inno Setup script for Vila GLT — Live Translate for OBS (obs-vila-glt).
+; Compiled in CI with:  ISCC /DMyAppVersion=<version> installer\obs-vila-glt.iss
+; Installs the plugin DLL and data files into the detected OBS Studio install directory.
 
 #ifndef MyAppVersion
-  #define MyAppVersion "0.0.0"
+  #define MyAppVersion "0.2.0"
 #endif
-#define MyAppName "OBS Live Translate"
-#define MyAppPublisher "weisunglee"
-#define MyAppURL "https://github.com/weisunglee/obs-live-translate"
+#define MyAppName "Vila GLT — Live Translate for OBS"
+#define MyAppPublisher "nklisic"
+#define MyAppURL "https://github.com/nklisic/obs-vila-glt"
 
 [Setup]
 ; Keep AppId stable across versions so upgrades/uninstall work.
-AppId={{8F3A2C1E-5B6D-4A7E-9C2F-1D3E4F5A6B7C}
+AppId={{D4B92E7A-83C1-4F6B-9E2A-7C5D8F1B3E40}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
@@ -25,18 +25,18 @@ ArchitecturesInstallIn64BitMode=x64
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\media\icon.ico
 UninstallDisplayName={#MyAppName}
-OutputBaseFilename=obs-live-translate-{#MyAppVersion}-windows-x64-installer
+OutputBaseFilename=obs-vila-glt-{#MyAppVersion}-windows-x64-installer
 ; Use Restart Manager to detect/close OBS if it has the DLL open.
 CloseApplications=yes
 RestartApplications=no
 
 [Files]
-Source: "..\build_x64\RelWithDebInfo\obs-live-translate.dll"; \
+Source: "..\build_x64\RelWithDebInfo\obs-vila-glt.dll"; \
   DestDir: "{app}\obs-plugins\64bit"; Flags: ignoreversion
-; If the plugin ever ships a data/ tree (locale, etc.), add it here:
-; Source: "..\data\*"; DestDir: "{app}\data\obs-plugins\obs-live-translate"; \
-;   Flags: recursesubdirs ignoreversion
+Source: "..\data\*"; DestDir: "{app}\data\obs-plugins\obs-vila-glt"; \
+  Flags: recursesubdirs ignoreversion
 
 [Code]
 { Resolve the OBS Studio install directory from the registry written by OBS's

@@ -5,9 +5,9 @@
 extern struct obs_source_info live_translate_source_info;
 
 OBS_DECLARE_MODULE()
-OBS_MODULE_USE_DEFAULT_LOCALE("obs-live-translate", "en-US")
+OBS_MODULE_USE_DEFAULT_LOCALE("obs-vila-glt", "en-US")
 
-extern "C" const char *obs_module_name(void) { return "OBS Live Translate"; }
+extern "C" const char *obs_module_name(void) { return "Vila GLT — Live Translate"; }
 extern "C" const char *obs_module_description(void)
 {
     return "Real-time speech-to-speech translation via the Gemini Live API.";
@@ -15,7 +15,7 @@ extern "C" const char *obs_module_description(void)
 
 bool obs_module_load(void)
 {
-    blog(LOG_INFO, "[live-translate] module loaded");
+    blog(LOG_INFO, "[obs-vila-glt] module loaded");
     lt::api_key_load();
     lt::model_catalog_load();
     obs_register_source(&live_translate_source_info);
@@ -24,5 +24,5 @@ bool obs_module_load(void)
 
 void obs_module_unload(void)
 {
-    blog(LOG_INFO, "[live-translate] module unloaded");
+    blog(LOG_INFO, "[obs-vila-glt] module unloaded");
 }

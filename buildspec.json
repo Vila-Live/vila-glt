@@ -33,13 +33,13 @@
     },
     "platformConfig": {
         "macos": {
-            "bundleId": "com.only26k.obs-live-translate"
+            "bundleId": "com.nklisic.obs-vila-glt"
         }
     },
-    "name": "obs-live-translate",
-    "displayName": "Gemini Live Translate for OBS",
-    "version": "0.1.6",
-    "author": "Only26k",
-    "website": "https://github.com/weisunglee/obs-live-translate",
-    "email": "https://github.com/weisunglee/obs-live-translate/issues"
+    "name": "obs-vila-glt",
+    "displayName": "Vila GLT — Live Translate for OBS",
+    "version": "0.2.0",
+    "author": "nklisic (fork of obs-live-translate by Only26k)",
+    "website": "https://github.com/nklisic/obs-vila-glt",
+    "email": "https://github.com/nklisic/obs-vila-glt/issues"
 }
