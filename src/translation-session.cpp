@@ -22,17 +22,31 @@ TranslationSession::TranslationSession() = default;
 
 TranslationSession::~TranslationSession() { stop(); }
 
-void TranslationSession::set_status(ConnStatus s, const std::string &detail)
+void TranslationSession::set_status(ConnStatus s, const std::string &detail,
+                                    int attempt)
 {
     std::lock_guard<std::mutex> lk(status_mtx_);
     status_ = s;
     status_detail_ = detail;
+    reconnect_attempt_ = attempt;
 }
 
 ConnStatus TranslationSession::status()
 {
     std::lock_guard<std::mutex> lk(status_mtx_);
     return status_;
+}
+
+std::string TranslationSession::status_detail()
+{
+    std::lock_guard<std::mutex> lk(status_mtx_);
+    return status_detail_;
+}
+
+int TranslationSession::reconnect_attempt()
+{
+    std::lock_guard<std::mutex> lk(status_mtx_);
+    return reconnect_attempt_;
 }
 
 bool TranslationSession::is_running()
@@ -51,9 +65,17 @@ std::string TranslationSession::status_text()
     case ConnStatus::Connected:
         return "Connected";
     case ConnStatus::Reconnecting:
+        if (reconnect_attempt_ > 0) {
+            return "Reconnecting... (" + std::to_string(reconnect_attempt_) +
+                   "/" + std::to_string(kMaxReconnectAttempts) + ")";
+        }
         return "Reconnecting...";
     case ConnStatus::AuthError:
         return "API key error: " + status_detail_;
+    case ConnStatus::QuotaError:
+        return "Quota or credit exhausted: " + status_detail_;
+    case ConnStatus::Error:
+        return "Connection error: " + status_detail_;
     }
     return "Unknown";
 }
@@ -80,6 +102,7 @@ void TranslationSession::configure(const std::string &api_key,
          "api_key=%s",
          model.c_str(), target_lang.c_str(), echo_target ? "on" : "off",
          api_key.empty() ? "empty" : "set");
+    stopped_on_error_.store(false, std::memory_order_relaxed);
     config_changed_ = true;
     if (!running_.exchange(true)) {
         // A previous run() may have exited on its own (e.g. auth error) and left
@@ -99,6 +122,7 @@ void TranslationSession::stop()
     if (thread_.joinable()) thread_.join();
     input_.clear();
     output_.clear();
+    stopped_on_error_.store(false, std::memory_order_relaxed);
     set_status(ConnStatus::Idle);
 }
 
@@ -141,6 +165,11 @@ bool TranslationSession::take_interrupted()
     return interrupted_.exchange(false, std::memory_order_relaxed);
 }
 
+bool TranslationSession::take_stopped_on_error()
+{
+    return stopped_on_error_.exchange(false, std::memory_order_relaxed);
+}
+
 uint64_t TranslationSession::input_idle_ms()
 {
     uint64_t last = last_input_ms_.load(std::memory_order_relaxed);
@@ -152,6 +181,7 @@ uint64_t TranslationSession::input_idle_ms()
 void TranslationSession::run()
 {
     Backoff backoff(1000, 30000);
+    int failed_attempts = 0;
 
     while (running_) {
         std::string key, model, lang;
@@ -163,64 +193,132 @@ void TranslationSession::run()
             lang = target_lang_;
             echo = echo_target_;
         }
-        config_changed_ = false;
+        if (config_changed_.exchange(false)) {
+            failed_attempts = 0;
+            backoff.reset();
+        }
 
         ix::WebSocket ws;
+        ws.disableAutomaticReconnection();
         std::string url =
             "wss://generativelanguage.googleapis.com/ws/"
             "google.ai.generativelanguage.v1beta.GenerativeService."
             "BidiGenerateContent?key=" + key;
         ws.setUrl(url);
 
-        std::atomic<bool> auth_error{false};
-        std::atomic<bool> open{false};
+        std::atomic<bool> setup_ready{false};
+        std::atomic<bool> session_established{false};
+        std::atomic<bool> closed{false};
+        std::mutex disconnect_mtx;
+        DisconnectInfo disconnect_info{DisconnectReason::Transient,
+                                       "Connection lost"};
+        std::atomic<bool> has_disconnect_info{false};
 
         ws.setOnMessageCallback([&](const ix::WebSocketMessagePtr &msg) {
             if (msg->type == ix::WebSocketMessageType::Open) {
-                open = true;
                 std::string setup = build_setup_message(model, lang, echo);
                 ws.send(setup);
                 blog(LOG_INFO, "[live-translate] websocket opened; setup sent");
-                set_status(ConnStatus::Connected);
-                backoff.reset();
             } else if (msg->type == ix::WebSocketMessageType::Message) {
                 ServerMessage m = parse_server_message(msg->str);
+                if (m.kind == ServerMessage::Kind::SetupComplete) {
+                    session_established = true;
+                    setup_ready = true;
+                    set_status(ConnStatus::Connected);
+                    blog(LOG_INFO,
+                         "[live-translate] setup complete; session connected");
+                }
                 if (m.interrupted) {
                     blog(LOG_INFO,
                          "[live-translate] turn interrupted; dropping pending audio");
                     signal_interrupt();
                 }
                 if (m.kind == ServerMessage::Kind::Audio && !m.audio.empty()) {
+                    if (!setup_ready) {
+                        session_established = true;
+                        setup_ready = true;
+                        set_status(ConnStatus::Connected);
+                    }
                     blog(LOG_DEBUG, "[live-translate] received audio bytes: %zu",
                          m.audio.size());
                     append_output(m.audio.data(), m.audio.size());
                 } else if (m.kind == ServerMessage::Kind::Error) {
-                    blog(LOG_ERROR, "[live-translate] server error: %s",
+                    DisconnectInfo info = classify_disconnect(
+                        m.error_code, m.error_message, m.error_status);
+                    if (info.reason == DisconnectReason::Transient &&
+                        m.error_code != 500 && m.error_code != 503 &&
+                        m.error_status != "INTERNAL" &&
+                        m.error_status != "UNAVAILABLE") {
+                        info.reason = DisconnectReason::ConfigError;
+                    }
+                    blog(LOG_ERROR,
+                         "[live-translate] server error (code=%d, status=%s): %s",
+                         m.error_code, m.error_status.c_str(),
                          m.error_message.c_str());
-                    set_status(ConnStatus::AuthError, m.error_message);
-                    auth_error = true;
-                    ws.stop();
+                    {
+                        std::lock_guard<std::mutex> lk(disconnect_mtx);
+                        disconnect_info = info;
+                        has_disconnect_info = true;
+                    }
+                    setup_ready = false;
+                    closed = true;
                 }
             } else if (msg->type == ix::WebSocketMessageType::Close ||
                        msg->type == ix::WebSocketMessageType::Error) {
+                DisconnectInfo info;
                 if (msg->type == ix::WebSocketMessageType::Error) {
-                    blog(LOG_ERROR, "[live-translate] websocket error: %s",
+                    info = classify_disconnect(msg->errorInfo.http_status,
+                                               msg->errorInfo.reason);
+                    blog(LOG_ERROR,
+                         "[live-translate] websocket error (http=%d): %s",
+                         msg->errorInfo.http_status,
                          msg->errorInfo.reason.c_str());
                 } else {
-                    blog(LOG_INFO, "[live-translate] websocket closed: %s",
+                    info = classify_disconnect(msg->closeInfo.code,
+                                               msg->closeInfo.reason);
+                    blog(LOG_WARNING,
+                         "[live-translate] websocket closed (code=%u): %s",
+                         static_cast<unsigned>(msg->closeInfo.code),
                          msg->closeInfo.reason.c_str());
                 }
-                open = false;
+                {
+                    std::lock_guard<std::mutex> lk(disconnect_mtx);
+                    if (!has_disconnect_info) {
+                        disconnect_info = info;
+                        has_disconnect_info = true;
+                    }
+                }
+                setup_ready = false;
+                closed = true;
             }
         });
 
-        set_status(ConnStatus::Connecting);
+        if (failed_attempts == 0) {
+            set_status(ConnStatus::Connecting);
+        }
+        uint64_t attempt_start_ms = now_ms();
         ws.start();
 
         std::vector<uint8_t> chunk(3200);
-        while (running_ && !auth_error && !config_changed_) {
+        while (running_ && !config_changed_ && !closed) {
+            if (!setup_ready) {
+                if (now_ms() - attempt_start_ms > 15000) {
+                    blog(LOG_WARNING,
+                         "[live-translate] connection setup timed out after 15s");
+                    std::lock_guard<std::mutex> lk(disconnect_mtx);
+                    if (!has_disconnect_info) {
+                        disconnect_info = {DisconnectReason::Transient,
+                                           "Connection setup timed out"};
+                        has_disconnect_info = true;
+                    }
+                    closed = true;
+                    break;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                continue;
+            }
             size_t n = input_.read(chunk.data(), chunk.size());
-            if (n == chunk.size() && open) {
+            if (n == chunk.size()) {
                 std::string m =
                     build_realtime_input_message(chunk.data(), chunk.size());
                 ws.send(m);
@@ -231,21 +329,72 @@ void TranslationSession::run()
 
         ws.stop();
 
-        if (auth_error) {
-            running_ = false;
-            break;
-        }
         if (config_changed_) continue;
         if (!running_) break;
 
-        set_status(ConnStatus::Reconnecting);
-        uint32_t wait = backoff.next_ms();
-        for (uint32_t waited = 0; waited < wait && running_ && !config_changed_;
-             waited += 50)
+        bool was_connected = session_established.load();
+        if (was_connected) {
+            failed_attempts = 0;
+            backoff.reset();
+        }
+
+        DisconnectInfo info;
+        {
+            std::lock_guard<std::mutex> lk(disconnect_mtx);
+            info = disconnect_info;
+        }
+
+        if (!info.should_reconnect()) {
+            ConnStatus err_status = ConnStatus::Error;
+            if (info.reason == DisconnectReason::AuthError)
+                err_status = ConnStatus::AuthError;
+            else if (info.reason == DisconnectReason::QuotaExceeded)
+                err_status = ConnStatus::QuotaError;
+
+            blog(LOG_ERROR,
+                 "[live-translate] fatal error, stopping session: %s",
+                 info.detail.c_str());
+            set_status(err_status, info.detail);
+            stopped_on_error_.store(true, std::memory_order_relaxed);
+            running_ = false;
+            break;
+        }
+
+        ++failed_attempts;
+        if (failed_attempts > kMaxReconnectAttempts) {
+            blog(LOG_ERROR,
+                 "[live-translate] reconnect failed after %d attempts; giving "
+                 "up (last error: %s)",
+                 kMaxReconnectAttempts, info.detail.c_str());
+            set_status(ConnStatus::Error, info.detail);
+            stopped_on_error_.store(true, std::memory_order_relaxed);
+            running_ = false;
+            break;
+        }
+
+        uint32_t wait =
+            (was_connected && failed_attempts == 1) ? 0 : backoff.next_ms();
+
+        blog(LOG_WARNING,
+             "[live-translate] reconnecting (attempt %d/%d, wait %u ms): %s",
+             failed_attempts, kMaxReconnectAttempts, wait, info.detail.c_str());
+        set_status(ConnStatus::Reconnecting, info.detail, failed_attempts);
+
+        for (uint32_t waited = 0;
+             waited < wait && running_ && !config_changed_; waited += 50)
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        if (wait > 0) {
+            input_.clear();
+        }
     }
-    set_status(status() == ConnStatus::AuthError ? ConnStatus::AuthError
-                                                 : ConnStatus::Idle);
+
+    ConnStatus final_status = status();
+    if (final_status != ConnStatus::AuthError &&
+        final_status != ConnStatus::QuotaError &&
+        final_status != ConnStatus::Error) {
+        set_status(ConnStatus::Idle);
+    }
 }
 
 }

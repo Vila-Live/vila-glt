@@ -109,7 +109,10 @@ on). There are no prebuilt packages of the fork yet. Current behavior:
 
 - ✅ Any audio source → Gemini streaming (continuous, including pause silence),
   translated audio played back via the OBS mixer.
-- ✅ Reconnect with exponential backoff; live API-key / target-language changes.
+- ✅ Reconnect on transient WebSocket drops (immediate first retry on an active
+  session, then exponential backoff up to 5 attempts); non-retryable errors
+  (exhausted quota/credits, invalid API key, unsupported model/config) stop
+  immediately. Live API-key / target-language changes.
 - ✅ Event-driven push output with a bounded scheduling lead (~600 ms) to ride
   out the model's phrase-boundary delivery jitter.
 - ✅ **Live translate model** list, driven by [`data/models.json`](data/models.json)
@@ -140,7 +143,10 @@ on). There are no prebuilt packages of the fork yet. Current behavior:
   Translate* source is active in the program: hide it (eye icon, or an
   OBS show/hide hotkey) or switch to a scene without it and the connection is
   closed, so nothing is streamed to Gemini. Showing it again reconnects, which
-  takes about a second.
+  takes about a second. Conversely, if a session stops on a fatal error (no
+  credits/quota, invalid key) or after all 5 reconnect attempts fail, it
+  automatically hides its own scene item (turns the eye icon off) while keeping
+  the error message visible in its properties.
 - ✅ A muted input is sent as silence, so muting the original also stops its
   translation. Lowering the input's fader does not affect the translation.
 - ⚠️ The translated audio lags your speech by a few seconds — the model's

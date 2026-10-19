@@ -61,9 +61,20 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
   resample to 16 kHz mono → chunk → hand to its `TranslationSession`. Output:
   event-driven push loop that drains the session's output buffer and pushes to
   `obs_source_output_audio`, paced by `OutputTimestamper` to keep a bounded
-  (~600 ms) scheduling lead.
-- `translation-session.*` — one per source: WebSocket to Gemini (reconnect +
-  backoff), input/output ring buffers, output-ready notification + interrupt.
+  (~600 ms) scheduling lead. When a session stops on a terminal error (fatal
+  auth/quota/config error or after all reconnect attempts fail), the push loop
+  automatically hides that source's scene item (`obs_sceneitem_set_visible` →
+  `false`) so the operator sees it turn off in the active scene's Sources list
+  during a live broadcast, while preserving the red error status in Properties
+  until the source is shown again.
+- `translation-session.*` — one per source: WebSocket to Gemini (`IXWebSocket`
+  with its internal auto-reconnect disabled), input/output ring buffers,
+  output-ready notification + interrupt. Waits for `SetupComplete` before
+  draining input audio. On a transient disconnect (`classify_disconnect` in
+  `live-protocol.*`), reconnects immediately (`0 ms`) on the first drop of an
+  established session and then with exponential backoff up to
+  `kMaxReconnectAttempts` (5) times. Fatal errors (`QuotaExceeded`, `AuthError`,
+  `ConfigError`) stop immediately without retrying.
 - `api-key.*` — API keys shared by all sources, one variable per provider (e.g.
   `GEMINI_API_KEY`) in `<OBS config folder>/.env` (never in source settings / the
   scene collection). Plain text by the owner's decision: no OS-specific secret
@@ -74,7 +85,8 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
   new provider needs a protocol implementation.
 - `model-catalog.*`, `dotenv.*`, `session-config.*`, `audio-pacing.*`, `audio-convert.*`, `ring-buffer.*`,
   `backoff.*`, `live-protocol.*`, `output-delay.*`, `base64.*` — pure modules,
-  each with a Catch2 test.
+  each with a Catch2 test (`live-protocol.*` also holds `classify_disconnect`
+  for WebSocket close codes, HTTP statuses, and JSON error payloads).
 
 ## Key technical facts (verified against Google's docs)
 

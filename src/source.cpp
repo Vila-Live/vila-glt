@@ -273,11 +273,41 @@ void sync_session(SourceData *d)
     d->applied = want;
 }
 
+bool hide_scene_item_cb(obs_scene_t *, obs_sceneitem_t *item, void *param)
+{
+    auto *target = static_cast<obs_source_t *>(param);
+    if (obs_sceneitem_is_group(item))
+        obs_sceneitem_group_enum_items(item, hide_scene_item_cb, param);
+    if (obs_sceneitem_get_source(item) == target &&
+        obs_sceneitem_visible(item)) {
+        obs_sceneitem_set_visible(item, false);
+    }
+    return true;
+}
+
+void hide_source_in_scenes(obs_source_t *target)
+{
+    if (!target) return;
+    obs_enum_scenes(
+        [](void *param, obs_source_t *scene_src) {
+            if (obs_scene_t *scene =
+                    obs_group_or_scene_from_source(scene_src)) {
+                obs_scene_enum_items(scene, hide_scene_item_cb, param);
+            }
+            return true;
+        },
+        target);
+}
+
 void push_loop(SourceData *d)
 {
     std::vector<uint8_t> buf(kDrainCapBytes);
     uint64_t last_input_sync = 0;
     while (d->active) {
+        if (d->session.take_stopped_on_error()) {
+            d->session_started = false;
+            hide_source_in_scenes(d->context);
+        }
         sync_session(d);
 
         uint64_t loop_now = os_gettime_ns();
@@ -432,22 +462,47 @@ Status current_status(SourceData *d, const lt::ModelInfo *model)
     if (!enabled)
         return {T("Status.Off", "Off: the connection is switched off."),
                 OBS_TEXT_INFO_WARNING};
+
+    lt::ConnStatus st = d->session.status();
+    if (st == lt::ConnStatus::AuthError)
+        return {std::string(T("Status.AuthError", "API key error")) + ": " +
+                    d->session.status_detail(),
+                OBS_TEXT_INFO_ERROR};
+    if (st == lt::ConnStatus::QuotaError)
+        return {std::string(T("Status.QuotaError",
+                              "Quota or credit exhausted")) +
+                    ": " + d->session.status_detail(),
+                OBS_TEXT_INFO_ERROR};
+    if (st == lt::ConnStatus::Error)
+        return {std::string(T("Status.Error", "Connection error")) + ": " +
+                    d->session.status_detail(),
+                OBS_TEXT_INFO_ERROR};
+
     if (!d->program_active)
         return {T("Status.Paused", "Paused: this source is hidden or not in "
                                    "the active scene."),
                 OBS_TEXT_INFO_WARNING};
 
-    switch (d->session.status()) {
+    switch (st) {
     case lt::ConnStatus::Connected:
         return {T("Status.Connected", "Connected"), OBS_TEXT_INFO_NORMAL};
     case lt::ConnStatus::Connecting:
         return {T("Status.Connecting", "Connecting..."), OBS_TEXT_INFO_NORMAL};
-    case lt::ConnStatus::Reconnecting:
-        return {T("Status.Reconnecting", "Reconnecting..."),
-                OBS_TEXT_INFO_WARNING};
+    case lt::ConnStatus::Reconnecting: {
+        std::string text = T("Status.Reconnecting", "Reconnecting...");
+        int attempt = d->session.reconnect_attempt();
+        if (attempt > 0) {
+            text += " (" + std::to_string(attempt) + "/" +
+                    std::to_string(lt::TranslationSession::kMaxReconnectAttempts) +
+                    ")";
+        }
+        std::string detail = d->session.status_detail();
+        if (!detail.empty()) text += ": " + detail;
+        return {text, OBS_TEXT_INFO_WARNING};
+    }
     case lt::ConnStatus::AuthError:
-        // Carries the provider's own error message.
-        return {d->session.status_text(), OBS_TEXT_INFO_ERROR};
+    case lt::ConnStatus::QuotaError:
+    case lt::ConnStatus::Error:
     case lt::ConnStatus::Idle:
         break;
     }

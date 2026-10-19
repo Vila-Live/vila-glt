@@ -8,13 +8,23 @@
 
 namespace lt {
 
-enum class ConnStatus { Idle, Connecting, Connected, Reconnecting, AuthError };
+enum class ConnStatus {
+    Idle,
+    Connecting,
+    Connected,
+    Reconnecting,
+    AuthError,
+    QuotaError,
+    Error
+};
 
 // One translation stream: a WebSocket to Gemini plus its input/output audio
 // buffers. Each translated-audio source owns its own session, so several
 // translations can run side by side without sharing any state.
 class TranslationSession {
 public:
+    static constexpr int kMaxReconnectAttempts = 5;
+
     TranslationSession();
     ~TranslationSession();
     TranslationSession(const TranslationSession &) = delete;
@@ -29,21 +39,26 @@ public:
     void signal_interrupt();
     size_t wait_and_read_output(uint8_t *out, size_t max_len, uint32_t timeout_ms);
     bool take_interrupted();
+    bool take_stopped_on_error();
     uint64_t input_idle_ms();
 
     ConnStatus status();
+    std::string status_detail();
+    int reconnect_attempt();
     std::string status_text();
     bool is_running();
 
 private:
     void run();
-    void set_status(ConnStatus s, const std::string &detail = "");
+    void set_status(ConnStatus s, const std::string &detail = "",
+                    int attempt = 0);
 
     ByteRingBuffer input_{16000 * 2 * 5};
     ByteRingBuffer output_{24000 * 2 * 10};
     std::condition_variable output_cv_;
     std::mutex output_wait_mtx_;
     std::atomic<bool> interrupted_{false};
+    std::atomic<bool> stopped_on_error_{false};
     std::atomic<uint64_t> last_input_ms_{0};
 
     std::mutex cfg_mtx_;
@@ -59,6 +74,7 @@ private:
     std::mutex status_mtx_;
     ConnStatus status_ = ConnStatus::Idle;
     std::string status_detail_;
+    int reconnect_attempt_ = 0;
 };
 
 }
