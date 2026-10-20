@@ -360,6 +360,7 @@ data/                    models.json + locale/ (en-US, sr-CS, sr-SP)
 media/                   project icon (README, installer); the OBS Sources
                          list currently shows OBS's built-in speaker icon
 installer/               Inno Setup 6 script for the Windows installer
+tools/build-icons.py     regenerates media/icon.png, icon-light.png, icon.ico
 docs/superpowers/        upstream design notes for its single-session guard
                          (removed in this fork; kept for history)
 cmake/, CMakePresets.json, buildspec.json

@@ -137,7 +137,10 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
     (optical size 20, used for 16/24 px) are the sources, with a viewBox
     widened because the Material path overshoots 0..960. `icon.png` (blue
     #1A73E8, light backgrounds), `icon-light.png` (#E3E3E3, dark backgrounds),
-    `icon.ico` (blue, 16–256 px) are generated from them. Used by the README
+    `icon.ico` (blue, 16–256 px) are generated from them by
+    `tools/build-icons.py` (needs `pillow` and `resvg-py` in a venv; running it
+    with no arguments rebuilds everything from `media/` byte-identically,
+    `preview` renders a size/colour sheet). Used by the README
     (`<picture>`) and the installer (setup icon verified in the built .exe;
     the Windows "Apps" icon is checked when the owner runs the installer).
   - Warning when Desktop Audio is chosen as input (it can capture the monitored
