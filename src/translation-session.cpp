@@ -93,12 +93,12 @@ void TranslationSession::configure(const std::string &api_key,
         echo_target_ = echo_target;
     }
     if (api_key.empty()) {
-        blog(LOG_INFO, "[live-translate] API key cleared; stopping session");
+        blog(LOG_INFO, "[vila-glt] API key cleared; stopping session");
         stop();
         return;
     }
     blog(LOG_INFO,
-         "[live-translate] configuring session: model=%s target=%s echo=%s "
+         "[vila-glt] configuring session: model=%s target=%s echo=%s "
          "api_key=%s",
          model.c_str(), target_lang.c_str(), echo_target ? "on" : "off",
          api_key.empty() ? "empty" : "set");
@@ -218,7 +218,7 @@ void TranslationSession::run()
             if (msg->type == ix::WebSocketMessageType::Open) {
                 std::string setup = build_setup_message(model, lang, echo);
                 ws.send(setup);
-                blog(LOG_INFO, "[live-translate] websocket opened; setup sent");
+                blog(LOG_INFO, "[vila-glt] websocket opened; setup sent");
             } else if (msg->type == ix::WebSocketMessageType::Message) {
                 ServerMessage m = parse_server_message(msg->str);
                 if (m.kind == ServerMessage::Kind::SetupComplete) {
@@ -226,11 +226,11 @@ void TranslationSession::run()
                     setup_ready = true;
                     set_status(ConnStatus::Connected);
                     blog(LOG_INFO,
-                         "[live-translate] setup complete; session connected");
+                         "[vila-glt] setup complete; session connected");
                 }
                 if (m.interrupted) {
                     blog(LOG_INFO,
-                         "[live-translate] turn interrupted; dropping pending audio");
+                         "[vila-glt] turn interrupted; dropping pending audio");
                     signal_interrupt();
                 }
                 if (m.kind == ServerMessage::Kind::Audio && !m.audio.empty()) {
@@ -239,7 +239,7 @@ void TranslationSession::run()
                         setup_ready = true;
                         set_status(ConnStatus::Connected);
                     }
-                    blog(LOG_DEBUG, "[live-translate] received audio bytes: %zu",
+                    blog(LOG_DEBUG, "[vila-glt] received audio bytes: %zu",
                          m.audio.size());
                     append_output(m.audio.data(), m.audio.size());
                 } else if (m.kind == ServerMessage::Kind::Error) {
@@ -252,7 +252,7 @@ void TranslationSession::run()
                         info.reason = DisconnectReason::ConfigError;
                     }
                     blog(LOG_ERROR,
-                         "[live-translate] server error (code=%d, status=%s): %s",
+                         "[vila-glt] server error (code=%d, status=%s): %s",
                          m.error_code, m.error_status.c_str(),
                          m.error_message.c_str());
                     {
@@ -270,14 +270,14 @@ void TranslationSession::run()
                     info = classify_disconnect(msg->errorInfo.http_status,
                                                msg->errorInfo.reason);
                     blog(LOG_ERROR,
-                         "[live-translate] websocket error (http=%d): %s",
+                         "[vila-glt] websocket error (http=%d): %s",
                          msg->errorInfo.http_status,
                          msg->errorInfo.reason.c_str());
                 } else {
                     info = classify_disconnect(msg->closeInfo.code,
                                                msg->closeInfo.reason);
                     blog(LOG_WARNING,
-                         "[live-translate] websocket closed (code=%u): %s",
+                         "[vila-glt] websocket closed (code=%u): %s",
                          static_cast<unsigned>(msg->closeInfo.code),
                          msg->closeInfo.reason.c_str());
                 }
@@ -304,7 +304,7 @@ void TranslationSession::run()
             if (!setup_ready) {
                 if (now_ms() - attempt_start_ms > 15000) {
                     blog(LOG_WARNING,
-                         "[live-translate] connection setup timed out after 15s");
+                         "[vila-glt] connection setup timed out after 15s");
                     std::lock_guard<std::mutex> lk(disconnect_mtx);
                     if (!has_disconnect_info) {
                         disconnect_info = {DisconnectReason::Transient,
@@ -352,7 +352,7 @@ void TranslationSession::run()
                 err_status = ConnStatus::QuotaError;
 
             blog(LOG_ERROR,
-                 "[live-translate] fatal error, stopping session: %s",
+                 "[vila-glt] fatal error, stopping session: %s",
                  info.detail.c_str());
             set_status(err_status, info.detail);
             stopped_on_error_.store(true, std::memory_order_relaxed);
@@ -363,7 +363,7 @@ void TranslationSession::run()
         ++failed_attempts;
         if (failed_attempts > kMaxReconnectAttempts) {
             blog(LOG_ERROR,
-                 "[live-translate] reconnect failed after %d attempts; giving "
+                 "[vila-glt] reconnect failed after %d attempts; giving "
                  "up (last error: %s)",
                  kMaxReconnectAttempts, info.detail.c_str());
             set_status(ConnStatus::Error, info.detail);
@@ -376,7 +376,7 @@ void TranslationSession::run()
             (was_connected && failed_attempts == 1) ? 0 : backoff.next_ms();
 
         blog(LOG_WARNING,
-             "[live-translate] reconnecting (attempt %d/%d, wait %u ms): %s",
+             "[vila-glt] reconnecting (attempt %d/%d, wait %u ms): %s",
              failed_attempts, kMaxReconnectAttempts, wait, info.detail.c_str());
         set_status(ConnStatus::Reconnecting, info.detail, failed_attempts);
 

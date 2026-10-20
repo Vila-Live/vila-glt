@@ -112,8 +112,6 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
     translation and loop).
   - Candidate feature, not decided: captions via `outputAudioTranscription` /
     `inputAudioTranscription`.
-  - Log prefix is still `[live-translate]` in `translation-session.cpp`,
-    `api-key.cpp`, `model-store.cpp` (`plugin-main.cpp` uses `[obs-vila-glt]`).
 - `docs/superpowers/` holds upstream's design notes for the single-session guard,
   which this fork removed; historical only.
 

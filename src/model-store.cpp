@@ -18,7 +18,7 @@ void merge_file(char *path, const char *what)
     if (text) {
         ModelCatalog extra = parse_model_catalog(text);
         bfree(text);
-        blog(LOG_INFO, "[live-translate] %s %s: %zu usable model(s)", what, path,
+        blog(LOG_INFO, "[vila-glt] %s %s: %zu usable model(s)", what, path,
              extra.size());
         merge_model_catalog(g_catalog, extra);
     }
@@ -32,7 +32,7 @@ void model_catalog_load()
     g_catalog = parse_model_catalog(builtin_models_json());
     merge_file(obs_module_file(kFile), "plugin data");
     merge_file(obs_module_config_path(kFile), "user config");
-    blog(LOG_INFO, "[live-translate] model catalog: %zu model(s)",
+    blog(LOG_INFO, "[vila-glt] model catalog: %zu model(s)",
          g_catalog.size());
 }
 

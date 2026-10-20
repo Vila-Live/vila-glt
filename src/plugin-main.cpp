@@ -15,7 +15,7 @@ extern "C" const char *obs_module_description(void)
 
 bool obs_module_load(void)
 {
-    blog(LOG_INFO, "[obs-vila-glt] module loaded");
+    blog(LOG_INFO, "[vila-glt] module loaded");
     lt::api_key_load();
     lt::model_catalog_load();
     obs_register_source(&live_translate_source_info);
@@ -24,5 +24,5 @@ bool obs_module_load(void)
 
 void obs_module_unload(void)
 {
-    blog(LOG_INFO, "[obs-vila-glt] module unloaded");
+    blog(LOG_INFO, "[vila-glt] module unloaded");
 }

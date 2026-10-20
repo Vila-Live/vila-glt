@@ -60,7 +60,7 @@ void persist()
     }
     if (!os_quick_write_utf8_file(path.c_str(), g_env_text.c_str(),
                                   g_env_text.size(), false)) {
-        blog(LOG_ERROR, "[live-translate] could not write %s; the API key is "
+        blog(LOG_ERROR, "[vila-glt] could not write %s; the API key is "
                         "kept for this session only", path.c_str());
         return;
     }
@@ -78,7 +78,7 @@ void api_key_load()
     std::string path = env_file_path();
     if (path.empty()) return;
     std::string text = read_env_file(path);
-    blog(LOG_INFO, "[live-translate] API keys are read from %s%s", path.c_str(),
+    blog(LOG_INFO, "[vila-glt] API keys are read from %s%s", path.c_str(),
          text.empty() ? " (not present yet)" : "");
     std::lock_guard<std::mutex> lk(g_mtx);
     g_env_text = text;
