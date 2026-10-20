@@ -163,9 +163,18 @@ on). There are no prebuilt packages of the fork yet. Current behavior:
 
 ## Install
 
-There is no installer yet (the Inno Setup script in `installer/` has not been
-built). Build the plugin (see *Build from source*), then on **Windows**, with
-OBS closed, copy:
+**Installer (Windows):** build the plugin (see *Build from source*), then
+compile the Inno Setup 6 script:
+
+```powershell
+ISCC /Obuild_x64\installer installer\obs-vila-glt.iss
+```
+
+Run `build_x64\installer\obs-vila-glt-<version>-windows-x64-installer.exe` with
+OBS closed; it finds the OBS folder from the registry and needs administrator
+rights. It is uninstalled from Windows *Apps*.
+
+**By hand:** with OBS closed, copy:
 
 - `build_x64\RelWithDebInfo\obs-vila-glt.dll` →
   `C:\Program Files\obs-studio\obs-plugins\64bit\`
@@ -350,7 +359,7 @@ tests/                   Catch2 unit tests (one per pure module)
 data/                    models.json + locale/ (en-US, sr-CS, sr-SP)
 media/                   project icon (README, installer); the OBS Sources
                          list currently shows OBS's built-in speaker icon
-installer/               Inno Setup script for the Windows installer (not built yet)
+installer/               Inno Setup 6 script for the Windows installer
 docs/superpowers/        upstream design notes for its single-session guard
                          (removed in this fork; kept for history)
 cmake/, CMakePresets.json, buildspec.json

@@ -117,8 +117,13 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
 - Version `0.2.0` (`buildspec.json`), module/DLL name `obs-vila-glt`, source id
   still `gemini_translated_audio_source` (same as upstream — never install both
   DLLs). Built and tested on Windows only.
-- Not published: no `origin` remote, no GitHub fork yet, no release/installer
-  build. Wait for the owner's word before any of that.
+- Not published: no `origin` remote, no GitHub fork yet, no release. Wait for
+  the owner's word before any of that.
+- Installer: Inno Setup 6.7.3 is installed per-user at
+  `%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe` (CI uses `choco install
+  innosetup`, path `C:\Program Files (x86)\Inno Setup 6`). Build with
+  `ISCC /Obuild_x64\installer installer\obs-vila-glt.iss` — `build_x64` is
+  git-ignored. First built 2026-10-20; not yet run/tested by the owner.
 - History: initial redesign 2026-10-02 (Claude Code); reconnect/error handling,
   rename to `obs-vila-glt` and icon assets 2026-10-19 (Google Antigravity).
 - Verified by the owner in OBS: single source translating a browser source
@@ -133,9 +138,8 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
     widened because the Material path overshoots 0..960. `icon.png` (blue
     #1A73E8, light backgrounds), `icon-light.png` (#E3E3E3, dark backgrounds),
     `icon.ico` (blue, 16–256 px) are generated from them. Used by the README
-    (`<picture>`) and the installer (setup icon + Windows "Apps" icon); the
-    installer has not been built yet, so its icons are untested.
-  - Windows installer (`installer/obs-vila-glt.iss`, Inno Setup) — not built yet.
+    (`<picture>`) and the installer (setup icon verified in the built .exe;
+    the Windows "Apps" icon is checked when the owner runs the installer).
   - Warning when Desktop Audio is chosen as input (it can capture the monitored
     translation and loop).
   - Candidate feature, not decided: captions via `outputAudioTranscription` /

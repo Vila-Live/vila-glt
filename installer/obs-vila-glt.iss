@@ -20,8 +20,9 @@ AppSupportURL={#MyAppURL}/issues
 DefaultDirName={code:GetOBSDir}
 DisableProgramGroupPage=yes
 PrivilegesRequired=admin
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+; x64os, not x64compatible: an ARM64 build of OBS cannot load this x64 DLL.
+ArchitecturesAllowed=x64os
+ArchitecturesInstallIn64BitMode=x64os
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
