@@ -63,10 +63,13 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
   `obs_source_output_audio`, paced by `OutputTimestamper` to keep a bounded
   (~600 ms) scheduling lead. When a session stops on a terminal error (fatal
   auth/quota/config error or after all reconnect attempts fail), the push loop
-  automatically hides that source's scene item (`obs_sceneitem_set_visible` →
-  `false`) so the operator sees it turn off in the active scene's Sources list
-  during a live broadcast, while preserving the red error status in Properties
-  until the source is shown again.
+  hides that source's scene items in **every** scene, groups included
+  (`hide_source_in_scenes` → `obs_sceneitem_set_visible(false)`), so the
+  operator sees the eye icon turn off in the Sources list during a live
+  broadcast, while the red error status stays in Properties until the source is
+  shown again. `source_deactivate` only sets flags, so hiding from the push-loop
+  thread does not deadlock.
+  Source-list icon: `info.icon_type = OBS_ICON_TYPE_AUDIO_OUTPUT` (speaker).
 - `translation-session.*` — one per source: WebSocket to Gemini (`IXWebSocket`
   with its internal auto-reconnect disabled), input/output ring buffers,
   output-ready notification + interrupt. Waits for `SetupComplete` before
@@ -87,6 +90,32 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
   `backoff.*`, `live-protocol.*`, `output-delay.*`, `base64.*` — pure modules,
   each with a Catch2 test (`live-protocol.*` also holds `classify_disconnect`
   for WebSocket close codes, HTTP statuses, and JSON error payloads).
+
+## Current state (2026-10-20)
+
+- Version `0.2.0` (`buildspec.json`), module/DLL name `obs-vila-glt`, source id
+  still `gemini_translated_audio_source` (same as upstream — never install both
+  DLLs). Built and tested on Windows only.
+- Not published: no `origin` remote, no GitHub fork yet, no release/installer
+  build. Wait for the owner's word before any of that.
+- History: initial redesign 2026-10-02 (Claude Code); reconnect/error handling,
+  rename to `obs-vila-glt` and icon assets 2026-10-19 (Google Antigravity).
+- Verified by the owner in OBS: single source translating a browser source
+  (lag < 1 s steady state). **Not yet verified in OBS:** reconnect/stop on a real
+  drop or exhausted credits, several sources at once, two-way guest setup
+  (VB-Cable + VDO.Ninja), behaviour of the auto-hide.
+- Open items (ask before starting any of them):
+  - Custom Source-list icon — the owner will show how it is done; until then
+    `media/icon.*` is used only by the README and the installer script.
+  - Windows installer (`installer/obs-vila-glt.iss`, Inno Setup) — not built yet.
+  - Warning when Desktop Audio is chosen as input (it can capture the monitored
+    translation and loop).
+  - Candidate feature, not decided: captions via `outputAudioTranscription` /
+    `inputAudioTranscription`.
+  - Log prefix is still `[live-translate]` in `translation-session.cpp`,
+    `api-key.cpp`, `model-store.cpp` (`plugin-main.cpp` uses `[obs-vila-glt]`).
+- `docs/superpowers/` holds upstream's design notes for the single-session guard,
+  which this fork removed; historical only.
 
 ## Key technical facts (verified against Google's docs)
 

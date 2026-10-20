@@ -145,8 +145,9 @@ on). There are no prebuilt packages of the fork yet. Current behavior:
   closed, so nothing is streamed to Gemini. Showing it again reconnects, which
   takes about a second. Conversely, if a session stops on a fatal error (no
   credits/quota, invalid key) or after all 5 reconnect attempts fail, it
-  automatically hides its own scene item (turns the eye icon off) while keeping
-  the error message visible in its properties.
+  automatically hides itself in every scene where it appears, groups included
+  (turns the eye icon off), while keeping the error message visible in its
+  properties.
 - ✅ A muted input is sent as silence, so muting the original also stops its
   translation. Lowering the input's fader does not affect the translation.
 - ⚠️ The translated audio lags your speech by a few seconds — the model's
@@ -157,7 +158,9 @@ on). There are no prebuilt packages of the fork yet. Current behavior:
 
 ## Install
 
-Build the plugin (see *Build from source*) or run the Inno Setup installer, then on **Windows**, with OBS closed, copy:
+There is no installer yet (the Inno Setup script in `installer/` has not been
+built). Build the plugin (see *Build from source*), then on **Windows**, with
+OBS closed, copy:
 
 - `build_x64\RelWithDebInfo\obs-vila-glt.dll` →
   `C:\Program Files\obs-studio\obs-plugins\64bit\`
@@ -305,8 +308,11 @@ ctest --test-dir build_x64 -R "<test case name>" --output-on-failure
 ```
 
 The `unit-tests` target covers the pure logic (base64, ring buffer, backoff,
-audio conversion, audio pacing/timestamper, Gemini protocol parsing) and does
-**not** require libobs.
+audio conversion, audio pacing/timestamper, output delay, `.env` handling,
+model catalog, session start/reconnect rules, Gemini protocol parsing and
+disconnect classification) and does **not** require libobs. Code that touches
+libobs (`source.cpp`, `translation-session.*`) is verified by the full plugin
+build and by testing in OBS.
 
 ## Project layout
 
@@ -321,14 +327,20 @@ src/
   model-store.*          loads the catalog (embedded JSON + optional overrides)
   api-key.*              API keys per provider, kept in <OBS config>/.env
   dotenv.*               minimal .env reading/editing
-  live-protocol.*        build/parse Gemini Live API messages
+  live-protocol.*        build/parse Gemini Live API messages; classify disconnects
   audio-pacing.*         OutputTimestamper (contiguous, lead-bounded timestamps)
+  output-delay.*         optional playback delay for the translated audio
   audio-convert.*        PCM downmix / conversion / chunking
   ring-buffer.*          bounded byte ring buffer
   backoff.*              exponential reconnect backoff
   base64.*
 tests/                   Catch2 unit tests (one per pure module)
-installer/               Inno Setup script for the Windows installer
+data/                    models.json + locale/ (en-US, sr-CS, sr-SP)
+media/                   project icon (README, installer); the OBS Sources
+                         list currently shows OBS's built-in speaker icon
+installer/               Inno Setup script for the Windows installer (not built yet)
+docs/superpowers/        upstream design notes for its single-session guard
+                         (removed in this fork; kept for history)
 cmake/, CMakePresets.json, buildspec.json
 ```
 
