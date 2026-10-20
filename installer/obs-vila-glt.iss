@@ -27,6 +27,8 @@ SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=..\media\icon.ico
 UninstallDisplayName={#MyAppName}
+; Icon shown in Windows "Apps"; installed with the plugin's data files below.
+UninstallDisplayIcon={app}\data\obs-plugins\obs-vila-glt\icon.ico
 OutputBaseFilename=obs-vila-glt-{#MyAppVersion}-windows-x64-installer
 ; Use Restart Manager to detect/close OBS if it has the DLL open.
 CloseApplications=yes
@@ -37,6 +39,8 @@ Source: "..\build_x64\RelWithDebInfo\obs-vila-glt.dll"; \
   DestDir: "{app}\obs-plugins\64bit"; Flags: ignoreversion
 Source: "..\data\*"; DestDir: "{app}\data\obs-plugins\obs-vila-glt"; \
   Flags: recursesubdirs ignoreversion
+Source: "..\media\icon.ico"; DestDir: "{app}\data\obs-plugins\obs-vila-glt"; \
+  Flags: ignoreversion
 
 [Code]
 { Resolve the OBS Studio install directory from the registry written by OBS's

@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="media/icon.png" alt="Vila GLT — Live Translate" width="120">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="media/icon-light.png">
+    <img src="media/icon.png" alt="Vila GLT — Live Translate" width="120">
+  </picture>
 </p>
 
 # Vila GLT — Live Translate (`obs-vila-glt`)

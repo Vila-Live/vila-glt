@@ -80,6 +80,11 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
   shown again. `source_deactivate` only sets flags, so hiding from the push-loop
   thread does not deadlock.
   Source-list icon: `info.icon_type = OBS_ICON_TYPE_AUDIO_OUTPUT` (speaker).
+  A plugin cannot supply its own Sources-list icon: OBS picks the theme's icon
+  for the type, and `OBS_ICON_TYPE_CUSTOM` falls back to the default icon
+  (`//TODO: Add ability for sources to define custom icons` in OBS 31.1.1
+  `frontend/widgets/OBSBasic_Icons.cpp`). Do not patch the Qt source tree to
+  work around it.
 - `translation-session.*` — one per source: WebSocket to Gemini (`IXWebSocket`
   with its internal auto-reconnect disabled), input/output ring buffers,
   output-ready notification + interrupt. Waits for `SetupComplete` before
@@ -121,8 +126,15 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
   drop or exhausted credits, several sources at once, two-way guest setup
   (VB-Cable + VDO.Ninja), behaviour of the auto-hide.
 - Open items (ask before starting any of them):
-  - Custom Source-list icon — the owner will show how it is done; until then
-    `media/icon.*` is used only by the README and the installer script.
+  - Icon (2026-10-20): Material Symbols `interpreter_mode` (Rounded, fill,
+    weight 700), chosen over `g_translate` so the plugin does not look like a
+    Google product. `media/icon.svg` (optical size 48) and `icon-small.svg`
+    (optical size 20, used for 16/24 px) are the sources, with a viewBox
+    widened because the Material path overshoots 0..960. `icon.png` (blue
+    #1A73E8, light backgrounds), `icon-light.png` (#E3E3E3, dark backgrounds),
+    `icon.ico` (blue, 16–256 px) are generated from them. Used by the README
+    (`<picture>`) and the installer (setup icon + Windows "Apps" icon); the
+    installer has not been built yet, so its icons are untested.
   - Windows installer (`installer/obs-vila-glt.iss`, Inno Setup) — not built yet.
   - Warning when Desktop Audio is chosen as input (it can capture the monitored
     translation and loop).
