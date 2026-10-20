@@ -261,14 +261,20 @@ a row with another provider is skipped until that protocol is added in code.
 
 Requires CMake ≥ 3.28 and a C++17 toolchain. Dependencies (nlohmann/json,
 IXWebSocket + mbedTLS) are fetched by CMake; libobs/obs-deps come from
-`buildspec.json` on Windows/macOS and from the system on Linux. The
-`-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF` flag keeps third-party warnings from
+`buildspec.json` on Windows/macOS and from the system on Linux.
+
+Warnings: the plugin and the unit tests build at `/W4` (`-Wall -Wextra`
+elsewhere) with warnings as errors. Third-party code is excluded — its headers
+are included as external, and IXWebSocket's own sources are compiled with
+warnings off — so any warning in the build log comes from our code and must be
+fixed. On macOS/Linux this stricter setup is untested; there the
+`-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF` flag below keeps a warning from
 failing the build.
 
 **Windows** (Visual Studio 2022) — produces `build_x64\RelWithDebInfo\obs-vila-glt.dll`:
 
 ```powershell
-cmake --preset windows-x64 -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
+cmake --preset windows-x64
 cmake --build --preset windows-x64
 ```
 

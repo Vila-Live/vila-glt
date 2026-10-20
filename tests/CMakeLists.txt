@@ -1,6 +1,7 @@
 FetchContent_Declare(Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG v3.5.2)
+  GIT_TAG v3.5.2
+  SYSTEM)
 FetchContent_MakeAvailable(Catch2)
 
 add_executable(unit-tests
@@ -29,6 +30,7 @@ add_executable(unit-tests
   ${CMAKE_SOURCE_DIR}/src/session-config.cpp
 )
 target_include_directories(unit-tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_compile_options(unit-tests PRIVATE ${VILA_GLT_WARNINGS})
 target_link_libraries(unit-tests PRIVATE Catch2::Catch2 nlohmann_json::nlohmann_json)
 
 include(CTest)

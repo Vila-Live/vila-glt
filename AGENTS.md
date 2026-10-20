@@ -35,6 +35,16 @@ Install: copy `build_x64\RelWithDebInfo\obs-vila-glt.dll` to
 closed). The DLL alone also works — UI texts then fall back to English and the
 model table to the copy embedded in the DLL.
 
+Warnings: our targets (plugin, `unit-tests`) build at `/W4` with warnings as
+errors (the template's default); third-party code is `SYSTEM` and IXWebSocket's
+sources use `/w`. Do not configure with `-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF` on
+Windows — fix the warning instead.
+
+Worktrees: the template rebuilds libobs inside `.deps` on every configure and
+records absolute paths there (`build_x64` and `build_x86` caches). Never point a
+worktree's `.deps` at the main checkout's (junction/symlink): give it its own
+copy or a fresh download.
+
 UI strings: use `T("Key", "English fallback")` in `source.cpp` and add the key
 to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
 
