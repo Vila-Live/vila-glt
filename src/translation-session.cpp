@@ -1,6 +1,6 @@
 #include "translation-session.hpp"
-#include "backoff.hpp"
 #include "live-protocol.hpp"
+#include "reconnect-policy.hpp"
 #include <ixwebsocket/IXWebSocket.h>
 #include <obs.h>
 #include <chrono>
@@ -180,8 +180,8 @@ uint64_t TranslationSession::input_idle_ms()
 
 void TranslationSession::run()
 {
-    Backoff backoff(1000, 30000);
-    int failed_attempts = 0;
+    ReconnectPolicy policy(kMaxReconnectAttempts, 1000, 30000,
+                           kStableSessionMs);
 
     while (running_) {
         std::string key, model, lang;
@@ -193,10 +193,7 @@ void TranslationSession::run()
             lang = target_lang_;
             echo = echo_target_;
         }
-        if (config_changed_.exchange(false)) {
-            failed_attempts = 0;
-            backoff.reset();
-        }
+        if (config_changed_.exchange(false)) policy.reset();
 
         ix::WebSocket ws;
         ws.disableAutomaticReconnection();
@@ -208,6 +205,7 @@ void TranslationSession::run()
 
         std::atomic<bool> setup_ready{false};
         std::atomic<bool> session_established{false};
+        std::atomic<uint64_t> established_at_ms{0};
         std::atomic<bool> closed{false};
         std::mutex disconnect_mtx;
         DisconnectInfo disconnect_info{DisconnectReason::Transient,
@@ -222,6 +220,7 @@ void TranslationSession::run()
             } else if (msg->type == ix::WebSocketMessageType::Message) {
                 ServerMessage m = parse_server_message(msg->str);
                 if (m.kind == ServerMessage::Kind::SetupComplete) {
+                    established_at_ms = now_ms();
                     session_established = true;
                     setup_ready = true;
                     set_status(ConnStatus::Connected);
@@ -235,6 +234,7 @@ void TranslationSession::run()
                 }
                 if (m.kind == ServerMessage::Kind::Audio && !m.audio.empty()) {
                     if (!setup_ready) {
+                        established_at_ms = now_ms();
                         session_established = true;
                         setup_ready = true;
                         set_status(ConnStatus::Connected);
@@ -245,12 +245,6 @@ void TranslationSession::run()
                 } else if (m.kind == ServerMessage::Kind::Error) {
                     DisconnectInfo info = classify_disconnect(
                         m.error_code, m.error_message, m.error_status);
-                    if (info.reason == DisconnectReason::Transient &&
-                        m.error_code != 500 && m.error_code != 503 &&
-                        m.error_status != "INTERNAL" &&
-                        m.error_status != "UNAVAILABLE") {
-                        info.reason = DisconnectReason::ConfigError;
-                    }
                     blog(LOG_ERROR,
                          "[vila-glt] server error (code=%d, status=%s): %s",
                          m.error_code, m.error_status.c_str(),
@@ -293,7 +287,7 @@ void TranslationSession::run()
             }
         });
 
-        if (failed_attempts == 0) {
+        if (policy.failed_attempts() == 0) {
             set_status(ConnStatus::Connecting);
         }
         uint64_t attempt_start_ms = now_ms();
@@ -332,12 +326,6 @@ void TranslationSession::run()
         if (config_changed_) continue;
         if (!running_) break;
 
-        bool was_connected = session_established.load();
-        if (was_connected) {
-            failed_attempts = 0;
-            backoff.reset();
-        }
-
         DisconnectInfo info;
         {
             std::lock_guard<std::mutex> lk(disconnect_mtx);
@@ -348,7 +336,7 @@ void TranslationSession::run()
             ConnStatus err_status = ConnStatus::Error;
             if (info.reason == DisconnectReason::AuthError)
                 err_status = ConnStatus::AuthError;
-            else if (info.reason == DisconnectReason::QuotaExceeded)
+            else if (info.reason == DisconnectReason::OutOfCredit)
                 err_status = ConnStatus::QuotaError;
 
             blog(LOG_ERROR,
@@ -360,25 +348,32 @@ void TranslationSession::run()
             break;
         }
 
-        ++failed_attempts;
-        if (failed_attempts > kMaxReconnectAttempts) {
+        bool was_connected = session_established.load();
+        uint64_t connected_ms =
+            was_connected ? now_ms() - established_at_ms.load() : 0;
+        ReconnectDecision next = policy.on_disconnect(was_connected, connected_ms);
+        if (!next.retry) {
             blog(LOG_ERROR,
                  "[vila-glt] reconnect failed after %d attempts; giving "
                  "up (last error: %s)",
                  kMaxReconnectAttempts, info.detail.c_str());
-            set_status(ConnStatus::Error, info.detail);
+            // Still rate-limited after every retry: most likely the daily
+            // quota, so show it as such rather than as a plain connection error.
+            set_status(info.reason == DisconnectReason::RateLimited
+                           ? ConnStatus::QuotaError
+                           : ConnStatus::Error,
+                       info.detail);
             stopped_on_error_.store(true, std::memory_order_relaxed);
             running_ = false;
             break;
         }
 
-        uint32_t wait =
-            (was_connected && failed_attempts == 1) ? 0 : backoff.next_ms();
+        uint32_t wait = next.wait_ms;
 
         blog(LOG_WARNING,
              "[vila-glt] reconnecting (attempt %d/%d, wait %u ms): %s",
-             failed_attempts, kMaxReconnectAttempts, wait, info.detail.c_str());
-        set_status(ConnStatus::Reconnecting, info.detail, failed_attempts);
+             next.attempt, kMaxReconnectAttempts, wait, info.detail.c_str());
+        set_status(ConnStatus::Reconnecting, info.detail, next.attempt);
 
         for (uint32_t waited = 0;
              waited < wait && running_ && !config_changed_; waited += 50)

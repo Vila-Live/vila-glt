@@ -14,6 +14,7 @@ add_executable(unit-tests
   test-live-protocol.cpp
   test-model-catalog.cpp
   test-output-delay.cpp
+  test-reconnect-policy.cpp
   test-ring-buffer.cpp
   test-session-config.cpp
   test-smoke.cpp
@@ -26,6 +27,7 @@ add_executable(unit-tests
   ${CMAKE_SOURCE_DIR}/src/model-catalog.cpp
   ${MODELS_JSON_CPP}
   ${CMAKE_SOURCE_DIR}/src/output-delay.cpp
+  ${CMAKE_SOURCE_DIR}/src/reconnect-policy.cpp
   ${CMAKE_SOURCE_DIR}/src/ring-buffer.cpp
   ${CMAKE_SOURCE_DIR}/src/session-config.cpp
 )

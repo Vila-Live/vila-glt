@@ -109,10 +109,12 @@ on). There are no prebuilt packages of the fork yet. Current behavior:
 
 - ✅ Any audio source → Gemini streaming (continuous, including pause silence),
   translated audio played back via the OBS mixer.
-- ✅ Reconnect on transient WebSocket drops (immediate first retry on an active
-  session, then exponential backoff up to 5 attempts); non-retryable errors
-  (exhausted quota/credits, invalid API key, unsupported model/config) stop
-  immediately. Live API-key / target-language changes.
+- ✅ Reconnect on transient WebSocket drops and rate limits, following Google's
+  error guidance: a session that ran for at least 30 s reconnects immediately
+  when it drops; other failures (including a session that drops again soon
+  after connecting) back off 1-16 s and stop after 5 attempts. Errors that
+  cannot succeed on retry (credits used up, invalid API key, unknown model or
+  unsupported setup) stop immediately. Live API-key / target-language changes.
 - ✅ Event-driven push output with a bounded scheduling lead (~600 ms) to ride
   out the model's phrase-boundary delivery jitter.
 - ✅ **Live translate model** list, driven by [`data/models.json`](data/models.json)
@@ -315,8 +317,8 @@ ctest --test-dir build_x64 -R "<test case name>" --output-on-failure
 
 The `unit-tests` target covers the pure logic (base64, ring buffer, backoff,
 audio conversion, audio pacing/timestamper, output delay, `.env` handling,
-model catalog, session start/reconnect rules, Gemini protocol parsing and
-disconnect classification) and does **not** require libobs. Code that touches
+model catalog, session start/reconnect rules, reconnect policy, Gemini
+protocol parsing and disconnect classification) and does **not** require libobs. Code that touches
 libobs (`source.cpp`, `translation-session.*`) is verified by the full plugin
 build and by testing in OBS.
 
@@ -339,6 +341,7 @@ src/
   audio-convert.*        PCM downmix / conversion / chunking
   ring-buffer.*          bounded byte ring buffer
   backoff.*              exponential reconnect backoff
+  reconnect-policy.*     when to reconnect, wait or give up after a disconnect
   base64.*
 tests/                   Catch2 unit tests (one per pure module)
 data/                    models.json + locale/ (en-US, sr-CS, sr-SP)

@@ -117,16 +117,16 @@ DisconnectInfo classify_disconnect(int code, const std::string &reason,
     std::string combined = to_lower_ascii(reason + " " + status);
     std::string detail = default_disconnect_detail(code, reason);
 
-    if (code == 429 || code == 8 ||
-        contains_any(combined, {"resource_exhausted", "resource exhausted",
-                                "resource has been exhausted", "quota",
-                                "billing", "insufficient credit",
-                                "credit balance", "rate limit", "rate_limit",
-                                "too many requests"})) {
-        return {DisconnectReason::QuotaExceeded, detail};
+    // Checked first: a credits message may also mention the quota.
+    if (code == 402 ||
+        contains_any(combined, {"payment_required", "payment required",
+                                "prepay", "insufficient credit",
+                                "credit balance", "credits are depleted",
+                                "billing"})) {
+        return {DisconnectReason::OutOfCredit, detail};
     }
 
-    if (code == 401 || code == 403 || code == 7 || code == 16 ||
+    if (code == 401 || code == 403 ||
         contains_any(combined, {"api key", "api_key", "apikey",
                                 "unauthenticated", "unauthorized",
                                 "permission_denied", "permission denied",
@@ -135,12 +135,26 @@ DisconnectInfo classify_disconnect(int code, const std::string &reason,
         return {DisconnectReason::AuthError, detail};
     }
 
-    if (code == 400 || code == 404 || code == 1002 || code == 1003 ||
-        code == 1007 || code == 3 || code == 5 ||
+    if (code == 429 ||
+        contains_any(combined, {"resource_exhausted", "resource exhausted",
+                                "resource has been exhausted", "quota",
+                                "rate limit", "rate_limit",
+                                "too many requests"})) {
+        return {DisconnectReason::RateLimited, detail};
+    }
+
+    if (code == 400 || code == 404 || code == 501 || code == 1002 ||
+        code == 1003 || code == 1007 ||
         contains_any(combined, {"invalid_argument", "invalid argument",
                                 "invalid value", "not_found", "not found",
                                 "not supported", "unsupported",
-                                "unimplemented"})) {
+                                "unimplemented", "not implemented"})) {
+        return {DisconnectReason::ConfigError, detail};
+    }
+
+    // Any other client error is not retried either; 408 (timeout) and 499
+    // (request cancelled) are transient.
+    if (code >= 400 && code < 500 && code != 408 && code != 499) {
         return {DisconnectReason::ConfigError, detail};
     }
 

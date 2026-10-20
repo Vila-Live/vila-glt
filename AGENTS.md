@@ -83,11 +83,17 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
 - `translation-session.*` — one per source: WebSocket to Gemini (`IXWebSocket`
   with its internal auto-reconnect disabled), input/output ring buffers,
   output-ready notification + interrupt. Waits for `SetupComplete` before
-  draining input audio. On a transient disconnect (`classify_disconnect` in
-  `live-protocol.*`), reconnects immediately (`0 ms`) on the first drop of an
-  established session and then with exponential backoff up to
-  `kMaxReconnectAttempts` (5) times. Fatal errors (`QuotaExceeded`, `AuthError`,
-  `ConfigError`) stop immediately without retrying.
+  draining input audio. Disconnects are sorted by `classify_disconnect`
+  (`live-protocol.*`) following Google's error docs: `Transient` (drops, 5xx,
+  408) and `RateLimited` (429, quota) are retried; `AuthError` (401/403, bad
+  key), `OutOfCredit` (402, prepaid credits/billing) and `ConfigError` (other
+  4xx, unknown model, 501) stop at once. When to retry is decided by
+  `ReconnectPolicy` (`reconnect-policy.*`): the first drop of a session that ran
+  at least `kStableSessionMs` (30 s) after setup reconnects immediately (covers
+  the server's periodic connection reset); any other failure — including a
+  session that drops soon after setup — waits 1, 2, 4, 8, 16 s and after
+  `kMaxReconnectAttempts` (5) gives up. Giving up while still rate-limited shows
+  the quota status (most likely the daily quota).
 - `api-key.*` — API keys shared by all sources, one variable per provider (e.g.
   `GEMINI_API_KEY`) in `<OBS config folder>/.env` (never in source settings / the
   scene collection). Plain text by the owner's decision: no OS-specific secret
@@ -97,7 +103,7 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
   override files. Adding a model for an existing provider is a JSON change; a
   new provider needs a protocol implementation.
 - `model-catalog.*`, `dotenv.*`, `session-config.*`, `audio-pacing.*`, `audio-convert.*`, `ring-buffer.*`,
-  `backoff.*`, `live-protocol.*`, `output-delay.*`, `base64.*` — pure modules,
+  `backoff.*`, `reconnect-policy.*`, `live-protocol.*`, `output-delay.*`, `base64.*` — pure modules,
   each with a Catch2 test (`live-protocol.*` also holds `classify_disconnect`
   for WebSocket close codes, HTTP statuses, and JSON error payloads).
 

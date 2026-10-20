@@ -61,6 +61,7 @@ add_library(${CMAKE_PROJECT_NAME} MODULE
   src/ring-buffer.cpp
   src/live-protocol.cpp
   src/backoff.cpp
+  src/reconnect-policy.cpp
   src/output-delay.cpp
   src/session-config.cpp
   src/source.cpp

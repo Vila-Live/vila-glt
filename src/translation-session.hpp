@@ -2,6 +2,7 @@
 #include "ring-buffer.hpp"
 #include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -24,6 +25,9 @@ enum class ConnStatus {
 class TranslationSession {
 public:
     static constexpr int kMaxReconnectAttempts = 5;
+    // A session that ran this long after setup is "stable": its first drop
+    // reconnects immediately instead of counting as a failed attempt.
+    static constexpr uint64_t kStableSessionMs = 30000;
 
     TranslationSession();
     ~TranslationSession();

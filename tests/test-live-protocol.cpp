@@ -134,29 +134,49 @@ TEST_CASE("parse extracts error code and status from server error")
     REQUIRE(m.error_message == "Resource has been exhausted (e.g. check quota).");
 }
 
-TEST_CASE("classify_disconnect detects quota and credit exhaustion as non-retryable")
+TEST_CASE("classify_disconnect retries rate limits and quota with backoff")
 {
+    // Google's docs: 429 rate_limit_exceeded / too_many_requests are retried
+    // with backoff. The same RESOURCE_EXHAUSTED text is used for the daily
+    // quota, which the bounded retries turn into a stop after a few attempts.
     auto q1 = classify_disconnect(
         429, "Resource has been exhausted (e.g. check quota).",
         "RESOURCE_EXHAUSTED");
-    REQUIRE(q1.reason == DisconnectReason::QuotaExceeded);
-    REQUIRE_FALSE(q1.should_reconnect());
+    REQUIRE(q1.reason == DisconnectReason::RateLimited);
+    REQUIRE(q1.should_reconnect());
 
-    // Gemini Live often closes WS with 1008 or 1011 when quota/credits run out
     auto q2 = classify_disconnect(
         1008, "Quota exceeded for quota metric 'GenerateContent' and limit");
-    REQUIRE(q2.reason == DisconnectReason::QuotaExceeded);
-    REQUIRE_FALSE(q2.should_reconnect());
+    REQUIRE(q2.reason == DisconnectReason::RateLimited);
+    REQUIRE(q2.should_reconnect());
 
     auto q3 = classify_disconnect(
         1011, "Resource has been exhausted (e.g. check quota).");
-    REQUIRE(q3.reason == DisconnectReason::QuotaExceeded);
-    REQUIRE_FALSE(q3.should_reconnect());
+    REQUIRE(q3.reason == DisconnectReason::RateLimited);
+    REQUIRE(q3.should_reconnect());
 
-    auto q4 = classify_disconnect(
+    auto q4 = classify_disconnect(0, "Too many requests, rate limit exceeded");
+    REQUIRE(q4.reason == DisconnectReason::RateLimited);
+    REQUIRE(q4.should_reconnect());
+}
+
+TEST_CASE("classify_disconnect stops when the credits are used up")
+{
+    // Google's docs: 402 payment_required, "Don't retry".
+    auto c1 = classify_disconnect(402, "Prepay credit balance is depleted.");
+    REQUIRE(c1.reason == DisconnectReason::OutOfCredit);
+    REQUIRE_FALSE(c1.should_reconnect());
+
+    auto c2 = classify_disconnect(
         1008, "Billing account has insufficient credit balance.");
-    REQUIRE(q4.reason == DisconnectReason::QuotaExceeded);
-    REQUIRE_FALSE(q4.should_reconnect());
+    REQUIRE(c2.reason == DisconnectReason::OutOfCredit);
+    REQUIRE_FALSE(c2.should_reconnect());
+
+    // Credits win over the quota wording when a message mentions both.
+    auto c3 = classify_disconnect(
+        1011, "Your prepayment credits are depleted (check quota).");
+    REQUIRE(c3.reason == DisconnectReason::OutOfCredit);
+    REQUIRE_FALSE(c3.should_reconnect());
 }
 
 TEST_CASE("classify_disconnect detects API key and auth errors as non-retryable")
@@ -190,6 +210,22 @@ TEST_CASE("classify_disconnect detects invalid model or argument as non-retryabl
                                   "INVALID_ARGUMENT");
     REQUIRE(c2.reason == DisconnectReason::ConfigError);
     REQUIRE_FALSE(c2.should_reconnect());
+
+    auto c3 = classify_disconnect(501, "Operation is not implemented");
+    REQUIRE(c3.reason == DisconnectReason::ConfigError);
+    REQUIRE_FALSE(c3.should_reconnect());
+}
+
+TEST_CASE("classify_disconnect does not retry other 4xx client errors")
+{
+    // Google's docs: don't retry 4xx client errors, except 408 and 429.
+    auto e1 = classify_disconnect(410, "Gone");
+    REQUIRE(e1.reason == DisconnectReason::ConfigError);
+    REQUIRE_FALSE(e1.should_reconnect());
+
+    auto e2 = classify_disconnect(408, "Request timeout");
+    REQUIRE(e2.reason == DisconnectReason::Transient);
+    REQUIRE(e2.should_reconnect());
 }
 
 TEST_CASE("classify_disconnect treats network drops and server resets as retryable")
@@ -217,5 +253,27 @@ TEST_CASE("classify_disconnect treats network drops and server resets as retryab
     auto t6 = classify_disconnect(0, "Connection reset by peer");
     REQUIRE(t6.reason == DisconnectReason::Transient);
     REQUIRE(t6.should_reconnect());
+
+    auto t7 = classify_disconnect(500, "Internal error", "INTERNAL");
+    REQUIRE(t7.reason == DisconnectReason::Transient);
+    REQUIRE(t7.should_reconnect());
+
+    auto t8 = classify_disconnect(504, "Deadline exceeded");
+    REQUIRE(t8.reason == DisconnectReason::Transient);
+    REQUIRE(t8.should_reconnect());
+}
+
+TEST_CASE("classify_disconnect gives unknown server errors the bounded retry")
+{
+    // An error payload with no code and no recognisable text is not assumed
+    // to be fatal; the retry limit still stops a session that keeps failing.
+    auto u1 = classify_disconnect(0, "Something unexpected happened", "");
+    REQUIRE(u1.reason == DisconnectReason::Transient);
+    REQUIRE(u1.should_reconnect());
+
+    // gRPC status numbers never arrive here (we get WebSocket close codes or
+    // HTTP statuses), so a bare 7 or 8 means nothing special.
+    REQUIRE(classify_disconnect(7, "").reason == DisconnectReason::Transient);
+    REQUIRE(classify_disconnect(8, "").reason == DisconnectReason::Transient);
 }
 
