@@ -37,9 +37,9 @@
         }
     },
     "name": "obs-vila-glt",
-    "displayName": "Vila GLT — Live Translate for OBS",
+    "displayName": "Vila GLT — Live Translate",
     "version": "0.2.0",
-    "author": "nklisic (fork of obs-live-translate by Only26k)",
+    "author": "nklisic (fork of weisunglee/obs-live-translate)",
     "website": "https://github.com/nklisic/obs-vila-glt",
     "email": "https://github.com/nklisic/obs-vila-glt/issues"
 }

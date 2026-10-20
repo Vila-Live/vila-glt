@@ -1,11 +1,11 @@
-; Inno Setup script for Vila GLT — Live Translate for OBS (obs-vila-glt).
+; Inno Setup script for Vila GLT — Live Translate (obs-vila-glt).
 ; Compiled in CI with:  ISCC /DMyAppVersion=<version> installer\obs-vila-glt.iss
 ; Installs the plugin DLL and data files into the detected OBS Studio install directory.
 
 #ifndef MyAppVersion
   #define MyAppVersion "0.2.0"
 #endif
-#define MyAppName "Vila GLT — Live Translate for OBS"
+#define MyAppName "Vila GLT — Live Translate"
 #define MyAppPublisher "nklisic"
 #define MyAppURL "https://github.com/nklisic/obs-vila-glt"
 

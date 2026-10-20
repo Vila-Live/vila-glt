@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="media/icon.png" alt="Vila GLT — Live Translate for OBS" width="120">
+  <img src="media/icon.png" alt="Vila GLT — Live Translate" width="120">
 </p>
 
-# Vila GLT — Live Translate for OBS (`obs-vila-glt`)
+# Vila GLT — Live Translate (`obs-vila-glt`)
 
 [![License: GPL v2](https://img.shields.io/badge/license-GPLv2-blue.svg)](LICENSE)
 
