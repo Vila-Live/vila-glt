@@ -133,9 +133,8 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
   (lag < 1 s steady state).
 - **OBS test 2026-11-10** (owner + Claude Code), OBS 33.0.1 with the DLL built
   against the 31.1.1 SDK — loads with no warnings. Input: Media Source playing
-  `D:\cline-dev\mediaUtility\input\r_gril_n_p_sni_z_k_z_v_li.mp4` (2 h 10 min
-  Russian TV show with music, Twitch VOD; the agreed test file — the
-  stripped file name is intended), target `sr`. Results from the OBS log:
+  the owner's agreed test file (a 2 h 10 min Russian TV show with music, a
+  Twitch VOD), target `sr`. Results from the OBS log:
   - ~32 min of open sessions, 13 session starts (language changes, owner
     pausing by hiding the source); setup completes in 0.16–0.67 s every time;
     no plugin errors, no audio-buffering growth, clean unload on OBS exit.
@@ -186,8 +185,6 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
     translation and loop).
   - Candidate feature, not decided: captions via `outputAudioTranscription` /
     `inputAudioTranscription`.
-- `docs/superpowers/` holds upstream's design notes for the single-session guard,
-  which this fork removed; historical only.
 
 ## Key technical facts (verified against Google's docs)
 
