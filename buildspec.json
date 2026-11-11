@@ -38,7 +38,7 @@
     },
     "name": "obs-vila-glt",
     "displayName": "Vila GLT — Live Translate",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "author": "nklisic (fork of weisunglee/obs-live-translate)",
     "website": "https://github.com/nklisic/obs-vila-glt",
     "email": "https://github.com/nklisic/obs-vila-glt/issues"

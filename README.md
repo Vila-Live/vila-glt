@@ -25,9 +25,18 @@ voice and a live translation. Several sources can be translated at once.
 > model/language catalog is driven by JSON, and sessions auto-reconnect on
 > transient drops or auto-hide their scene item on fatal errors.
 >
-> Built and tested on **Windows** only; the macOS and Linux builds inherited
-> from the original are untested here. An independent project, not affiliated
-> with or endorsed by the OBS Project or Google.
+> **Windows only.** Releases ship a Windows installer and zip; the macOS and
+> Linux build files inherited from the original are kept but untested. An
+> independent project, not affiliated with or endorsed by the OBS Project or
+> Google.
+>
+> Developed with the help of AI coding assistants (Claude Code, Google
+> Antigravity); every release is built, unit-tested and tried by the maintainer
+> in OBS before it is published.
+
+**Download:** the Windows installer and a drop-in zip are on the
+[Releases page](https://github.com/nklisic/obs-vila-glt/releases/latest) — no
+need to download the source.
 
 ## How it works
 
@@ -107,8 +116,9 @@ Notes:
 
 ## Status
 
-Works on **Windows** (the only platform this fork has been built and tested
-on). There are no prebuilt packages of the fork yet. Current behavior:
+Works on **Windows** (the only platform this fork is built and tested on),
+OBS Studio 31–33 (built against the 31.1.1 SDK, tested on 33.0.1). Current
+behavior:
 
 - ✅ Any audio source → Gemini streaming (continuous, including pause silence),
   translated audio played back via the OBS mixer.
@@ -164,20 +174,51 @@ on). There are no prebuilt packages of the fork yet. Current behavior:
   beat after your last sentence before hitting stop so the trailing translation
   is captured. **Live streams** aren't affected.
 
+## Known limitations
+
+Most of these come from the Gemini model, which is a **preview**, not from the
+plugin.
+
+- **Sessions last about 10 minutes.** The server ends each session after ~10
+  minutes; the plugin reconnects at once (the gap is a fraction of a second).
+- **The translator's voice can shift.** For the first seconds of every new
+  session the voice is not yet settled, so it can change slightly about every
+  10 minutes. After a change of speaker the voice may also keep the previous
+  speaker's gender (e.g. stay male while a woman is speaking again). Fast,
+  animated speakers make this worse.
+- **Songs are translated too.** Lyrics sung over music are translated like
+  speech. Hide the *Live Translate* source during songs.
+- **Free-tier API keys** get disconnected by the server more often than paid
+  ones, and each reconnect starts a new session (see the voice note above).
+- **Network outages:** a dropped connection is noticed after roughly 10–20 s,
+  then the plugin retries for about 15 s more. A shorter outage recovers on its
+  own; a longer one stops the translation and hides the source — show it again
+  once the network is back.
+- **Billing follows the time a session is open**, silence and music included.
+  Hiding the source closes the session and stops the cost. Check current
+  prices in [Google's pricing](https://ai.google.dev/gemini-api/docs/pricing).
+- **Browser sources** are only offered as input when *Control audio via OBS* is
+  on in their properties — otherwise their sound bypasses OBS entirely.
+- **Desktop Audio as input** can capture the monitored translation itself and
+  loop. Pick the actual source (media, browser, microphone) instead.
+- **The installer is not code-signed**, so Windows SmartScreen may warn before
+  running it.
+
 ## Install
 
-**Installer (Windows):** build the plugin (see *Build from source*), then
-compile the Inno Setup 6 script:
+**Installer (recommended):** download
+`obs-vila-glt-<version>-windows-x64-installer.exe` from the
+[Releases page](https://github.com/nklisic/obs-vila-glt/releases/latest) and
+run it with OBS closed. It finds the OBS folder from the registry and needs
+administrator rights. It is uninstalled from Windows *Apps*.
 
-```powershell
-ISCC /Obuild_x64\installer installer\obs-vila-glt.iss
-```
+**Zip, by hand:** download `obs-vila-glt-<version>-windows-x64.zip`, close OBS
+and copy its `obs-plugins` and `data` folders into your OBS install folder
+(e.g. `C:\Program Files\obs-studio\`).
 
-Run `build_x64\installer\obs-vila-glt-<version>-windows-x64-installer.exe` with
-OBS closed; it finds the OBS folder from the registry and needs administrator
-rights. It is uninstalled from Windows *Apps*.
-
-**By hand:** with OBS closed, copy:
+**From your own build** (see *Build from source*): compile the Inno Setup 6
+script with `ISCC /Obuild_x64\installer installer\obs-vila-glt.iss`, or with
+OBS closed copy:
 
 - `build_x64\RelWithDebInfo\obs-vila-glt.dll` →
   `C:\Program Files\obs-studio\obs-plugins\64bit\`
@@ -312,7 +353,8 @@ cmake --preset ubuntu-x86_64 -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
 cmake --build --preset ubuntu-x86_64 --target obs-vila-glt   # build_x86_64/obs-vila-glt.so
 ```
 
-(The exact CI steps live in [`.github/workflows/release.yaml`](.github/workflows/release.yaml).)
+(The Windows release steps live in [`.github/workflows/release.yaml`](.github/workflows/release.yaml);
+CI does not build macOS or Linux.)
 
 ## Test
 
@@ -370,7 +412,7 @@ cmake/, CMakePresets.json, buildspec.json
 
 ## Tech stack
 
-C++17 · CMake (obs-plugintemplate) · libobs (OBS 31.x) · IXWebSocket (TLS via
+C++17 · CMake (obs-plugintemplate) · libobs (OBS 31.1.1 SDK) · IXWebSocket (TLS via
 mbedTLS) · nlohmann/json · Catch2.
 
 ## Key API facts

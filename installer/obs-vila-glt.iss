@@ -3,7 +3,7 @@
 ; Installs the plugin DLL and data files into the detected OBS Studio install directory.
 
 #ifndef MyAppVersion
-  #define MyAppVersion "0.2.0"
+  #define MyAppVersion "0.2.1"
 #endif
 #define MyAppName "Vila GLT — Live Translate"
 #define MyAppPublisher "nklisic"

@@ -116,13 +116,25 @@ native-speaker corrections are welcome.
   each with a Catch2 test (`live-protocol.*` also holds `classify_disconnect`
   for WebSocket close codes, HTTP statuses, and JSON error payloads).
 
-## Current state (2026-11-11)
+## Current state (2026-11-12)
 
-- Version `0.2.0` (`buildspec.json`), module/DLL name `obs-vila-glt`, source id
+- Version `0.2.1` (`buildspec.json`; also the default in
+  `installer/obs-vila-glt.iss`), module/DLL name `obs-vila-glt`, source id
   still `gemini_translated_audio_source` (same as upstream — never install both
   DLLs). Built and tested on Windows only.
-- Not published: no `origin` remote, no GitHub fork yet, no release. Wait for
-  the owner's word before any of that.
+- Versioning (owner, 2026-11-12): patch (0.2.x) for fixes, docs, languages and
+  small additions; minor (0.3.0) for a new capability — expected to be
+  subtitles. Count up by one, do not skip numbers.
+- Not published yet: no `origin` remote, no GitHub repo, no release. Wait for
+  the owner's word before any of that. Plan: public GitHub repo + GitHub
+  Releases (installer `.exe` + drop-in `.zip`), Windows only. `release.yaml`
+  builds on a `v*` tag on `windows-2022`, runs the unit tests and attaches
+  both files; the macOS/Linux jobs were removed 2026-11-12 (not supported by
+  the owner; build files kept, untested). The workflow has never run yet.
+- Not for the OBS forum Resources page: its policy (updated 2026-07-29) does not
+  require all three OSes, but rejects or heavily discourages plugins written
+  largely with AI tools and requires an AI disclaimer; it also discourages
+  `obs-` in new repo names. The README carries an AI-assistance note.
 - Installer: Inno Setup 6.7.3 is installed per-user at
   `%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe` (CI uses `choco install
   innosetup`, path `C:\Program Files (x86)\Inno Setup 6`). Build with
@@ -130,7 +142,7 @@ native-speaker corrections are welcome.
   git-ignored. First built 2026-10-20. Run by the owner 2026-10-20 (Apps entry,
   name, version, icon OK; no Start-menu entry is expected) and again
   2026-11-10 on OBS 33.0.1: installs the DLL and `data\` (`models.json`, the
-  three locales, `icon.ico`) correctly.
+  locales, `icon.ico`) correctly.
 - History: initial redesign 2026-10-02 (Claude Code); reconnect/error handling,
   rename to `obs-vila-glt` and icon assets 2026-10-19 (Google Antigravity).
 - Verified by the owner in OBS: single source translating a browser source
@@ -162,10 +174,37 @@ native-speaker corrections are welcome.
   - Recording in Simple output mode keeps only Track 1 (original + translation
     mixed); use Advanced output with separate tracks if the translation must be
     analysed on its own.
-- **Not yet verified in OBS:** wrong API key (immediate stop + auto-hide),
-  short network drop 5–10 s (Reconnecting n/5, then resume), drop > 30 s
-  (5 attempts, then stop + hide), exhausted credits, several sources at once,
-  two-way guest setup (VB-Cable + VDO.Ninja).
+- **OBS tests 2026-11-11** (owner + Claude Code, OBS 33.0.1), all as expected:
+  - Network drops (Wi-Fi switched off): 7 s and 30 s outages recovered on their
+    own (the 30 s one on the 5th attempt); an outage > 1 min gave up after 5
+    attempts and auto-hid the source; showing it again reconnected in 0.4 s.
+    Auto-hide is therefore **verified**.
+  - **Finding (open, owner's decision):** a drop is only noticed 10–20 s after
+    the network goes (the socket times out), and after a stable session the
+    first retry is immediate and counts as one of the 5, so the real retry
+    window is 0+1+2+4+8 = 15 s. Outages of ~35–40 s therefore stop the
+    translation. Options offered, not chosen: (a) do not count the immediate
+    retry, (b) detect a dead connection from missing model audio (the model
+    streams continuously) after ~3 s.
+  - Two sources at once (a YouTube browser source and the media file, both to
+    `en`, the media one on the free key): ~5 min side by side, no errors. **Verified** (short run, no ~10 min reset during the overlap).
+  - Free-tier key (`GEMINI_API_KEY_FREE`): frequent server closes 1011
+    "Internal error" (7 in ~45 min) on a working network, each reconnected in
+    0.1–0.3 s; the paid key on 2026-11-10 only had the regular 1008 after
+    ~10 min. Free-key instability, not a plugin bug. Free quota (429) was not
+    reached in ~45 min.
+  - Browser sources only appear as input with *Control audio via OBS* on
+    (otherwise OBS has no audio from them) — documented, not a bug.
+  - Log lines now carry the source name and the key's `.env` variable
+    (`[vila-glt] 'name' key=VAR: …`, commit ed5a5b8), verified in OBS.
+- **Not yet verified in OBS:** wrong API key (401/403 → immediate stop; the
+  auto-hide it triggers is verified via give-up), exhausted credits (402; the
+  owner has auto-recharge and will not test it), two-way guest setup
+  (VB-Cable + VDO.Ninja).
+- Feedback for Google (preview model): owner posts it himself, preferably on
+  the Google AI Developers Forum (Gemini API). Points: sung lyrics translated,
+  voice unstable at each session start (~10 min cap), voice does not follow
+  the speaker's gender after a speaker change, 1008 close reason truncated.
 - OBS facts checked 2026-11-10 (do not re-derive): a new scene collection is
   always created empty ("clean"); global Desktop Audio / Mic/Aux are made only
   on OBS's very first run (`FirstRun` in `user.ini`). Since OBS 32.0, a source
@@ -187,8 +226,13 @@ native-speaker corrections are welcome.
     Windows "Apps" icon verified by the owner 2026-10-20).
   - Warning when Desktop Audio is chosen as input (it can capture the monitored
     translation and loop).
-  - Candidate feature, not decided: captions via `outputAudioTranscription` /
-    `inputAudioTranscription`.
+  - Captions/subtitles via `outputAudioTranscription` /
+    `inputAudioTranscription`: owner expects this to be 0.3.0 (2026-11-12),
+    not started. It is still listed as a non-goal in the Rules and README —
+    change those when he starts it.
+  - Reconnect window (see the 2026-11-11 finding above).
+  - New README screenshots: the owner makes them; then replace the upstream
+    images in `screenshots/` and the README note about them.
 
 ## Key technical facts (verified against Google's docs)
 
