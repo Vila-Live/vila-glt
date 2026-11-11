@@ -2,5 +2,6 @@
 /build_x64/
 /.deps/
 /.cache/
+/.claude/
 *.user
 .DS_Store
