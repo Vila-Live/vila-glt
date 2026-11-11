@@ -142,8 +142,11 @@ on). There are no prebuilt packages of the fork yet. Current behavior:
 - ✅ The *Source to translate* list offers the sources shown in the OBS Audio
   Mixer (audio actually active), so a camera whose microphone is disabled is
   not listed.
-- ✅ Interface texts are localized (`data/locale`: English, Serbian Latin and
-  Cyrillic); without the locale files the plugin falls back to English.
+- ✅ Interface texts are localized (`data/locale`): English, Serbian (Latin
+  and Cyrillic), Bulgarian, Greek, Romanian, Hungarian, Thai and Filipino; the
+  plugin follows OBS's interface language and falls back to English without the
+  locale files. Translations other than English and Serbian are machine-made
+  — corrections from native speakers are welcome.
 - ✅ Hiding the source also stops it. A session only runs while its *Live
   Translate* source is active in the program: hide it (eye icon, or an
   OBS show/hide hotkey) or switch to a scene without it and the connection is
@@ -356,7 +359,8 @@ src/
   reconnect-policy.*     when to reconnect, wait or give up after a disconnect
   base64.*
 tests/                   Catch2 unit tests (one per pure module)
-data/                    models.json + locale/ (en-US, sr-CS, sr-SP)
+data/                    models.json + locale/ (en-US, sr-CS, sr-SP, bg-BG,
+                         el-GR, ro-RO, hu-HU, th-TH, fil-PH)
 media/                   project icon (README, installer); the OBS Sources
                          list currently shows OBS's built-in speaker icon
 installer/               Inno Setup 6 script for the Windows installer
