@@ -24,4 +24,17 @@ std::string api_key_hint(const std::string &key)
     return "..." + key.substr(key.size() - 4);
 }
 
+std::string log_prefix(const std::string &source_name,
+                       const std::string &key_env)
+{
+    std::string context;
+    if (!source_name.empty()) context += "'" + source_name + "'";
+    if (!key_env.empty()) {
+        if (!context.empty()) context += " ";
+        context += "key=" + key_env;
+    }
+    if (context.empty()) return "[vila-glt] ";
+    return "[vila-glt] " + context + ": ";
+}
+
 }

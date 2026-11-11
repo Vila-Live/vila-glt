@@ -1,6 +1,7 @@
 #include "translation-session.hpp"
 #include "live-protocol.hpp"
 #include "reconnect-policy.hpp"
+#include "session-config.hpp"
 #include <ixwebsocket/IXWebSocket.h>
 #include <obs.h>
 #include <chrono>
@@ -29,6 +30,19 @@ void TranslationSession::set_status(ConnStatus s, const std::string &detail,
     status_ = s;
     status_detail_ = detail;
     reconnect_attempt_ = attempt;
+}
+
+void TranslationSession::set_log_context(const std::string &source_name,
+                                         const std::string &key_env)
+{
+    std::lock_guard<std::mutex> lk(cfg_mtx_);
+    log_prefix_ = lt::log_prefix(source_name, key_env);
+}
+
+std::string TranslationSession::log_prefix()
+{
+    std::lock_guard<std::mutex> lk(cfg_mtx_);
+    return log_prefix_;
 }
 
 ConnStatus TranslationSession::status()
@@ -92,16 +106,16 @@ void TranslationSession::configure(const std::string &api_key,
         target_lang_ = target_lang;
         echo_target_ = echo_target;
     }
+    const std::string lp = log_prefix();
     if (api_key.empty()) {
-        blog(LOG_INFO, "[vila-glt] API key cleared; stopping session");
+        blog(LOG_INFO, "%sAPI key cleared; stopping session", lp.c_str());
         stop();
         return;
     }
     blog(LOG_INFO,
-         "[vila-glt] configuring session: model=%s target=%s echo=%s "
-         "api_key=%s",
-         model.c_str(), target_lang.c_str(), echo_target ? "on" : "off",
-         api_key.empty() ? "empty" : "set");
+         "%sconfiguring session: model=%s target=%s echo=%s api_key=%s",
+         lp.c_str(), model.c_str(), target_lang.c_str(),
+         echo_target ? "on" : "off", api_key.empty() ? "empty" : "set");
     stopped_on_error_.store(false, std::memory_order_relaxed);
     config_changed_ = true;
     if (!running_.exchange(true)) {
@@ -184,7 +198,7 @@ void TranslationSession::run()
                            kStableSessionMs);
 
     while (running_) {
-        std::string key, model, lang;
+        std::string key, model, lang, lp_str;
         bool echo;
         {
             std::lock_guard<std::mutex> lk(cfg_mtx_);
@@ -192,7 +206,9 @@ void TranslationSession::run()
             model = model_;
             lang = target_lang_;
             echo = echo_target_;
+            lp_str = log_prefix_;
         }
+        const char *lp = lp_str.c_str();
         if (config_changed_.exchange(false)) policy.reset();
 
         ix::WebSocket ws;
@@ -216,7 +232,7 @@ void TranslationSession::run()
             if (msg->type == ix::WebSocketMessageType::Open) {
                 std::string setup = build_setup_message(model, lang, echo);
                 ws.send(setup);
-                blog(LOG_INFO, "[vila-glt] websocket opened; setup sent");
+                blog(LOG_INFO, "%swebsocket opened; setup sent", lp);
             } else if (msg->type == ix::WebSocketMessageType::Message) {
                 ServerMessage m = parse_server_message(msg->str);
                 if (m.kind == ServerMessage::Kind::SetupComplete) {
@@ -224,12 +240,11 @@ void TranslationSession::run()
                     session_established = true;
                     setup_ready = true;
                     set_status(ConnStatus::Connected);
-                    blog(LOG_INFO,
-                         "[vila-glt] setup complete; session connected");
+                    blog(LOG_INFO, "%ssetup complete; session connected", lp);
                 }
                 if (m.interrupted) {
                     blog(LOG_INFO,
-                         "[vila-glt] turn interrupted; dropping pending audio");
+                         "%sturn interrupted; dropping pending audio", lp);
                     signal_interrupt();
                 }
                 if (m.kind == ServerMessage::Kind::Audio && !m.audio.empty()) {
@@ -239,15 +254,14 @@ void TranslationSession::run()
                         setup_ready = true;
                         set_status(ConnStatus::Connected);
                     }
-                    blog(LOG_DEBUG, "[vila-glt] received audio bytes: %zu",
+                    blog(LOG_DEBUG, "%sreceived audio bytes: %zu", lp,
                          m.audio.size());
                     append_output(m.audio.data(), m.audio.size());
                 } else if (m.kind == ServerMessage::Kind::Error) {
                     DisconnectInfo info = classify_disconnect(
                         m.error_code, m.error_message, m.error_status);
-                    blog(LOG_ERROR,
-                         "[vila-glt] server error (code=%d, status=%s): %s",
-                         m.error_code, m.error_status.c_str(),
+                    blog(LOG_ERROR, "%sserver error (code=%d, status=%s): %s",
+                         lp, m.error_code, m.error_status.c_str(),
                          m.error_message.c_str());
                     {
                         std::lock_guard<std::mutex> lk(disconnect_mtx);
@@ -263,15 +277,13 @@ void TranslationSession::run()
                 if (msg->type == ix::WebSocketMessageType::Error) {
                     info = classify_disconnect(msg->errorInfo.http_status,
                                                msg->errorInfo.reason);
-                    blog(LOG_ERROR,
-                         "[vila-glt] websocket error (http=%d): %s",
+                    blog(LOG_ERROR, "%swebsocket error (http=%d): %s", lp,
                          msg->errorInfo.http_status,
                          msg->errorInfo.reason.c_str());
                 } else {
                     info = classify_disconnect(msg->closeInfo.code,
                                                msg->closeInfo.reason);
-                    blog(LOG_WARNING,
-                         "[vila-glt] websocket closed (code=%u): %s",
+                    blog(LOG_WARNING, "%swebsocket closed (code=%u): %s", lp,
                          static_cast<unsigned>(msg->closeInfo.code),
                          msg->closeInfo.reason.c_str());
                 }
@@ -298,7 +310,7 @@ void TranslationSession::run()
             if (!setup_ready) {
                 if (now_ms() - attempt_start_ms > 15000) {
                     blog(LOG_WARNING,
-                         "[vila-glt] connection setup timed out after 15s");
+                         "%sconnection setup timed out after 15s", lp);
                     std::lock_guard<std::mutex> lk(disconnect_mtx);
                     if (!has_disconnect_info) {
                         disconnect_info = {DisconnectReason::Transient,
@@ -339,8 +351,7 @@ void TranslationSession::run()
             else if (info.reason == DisconnectReason::OutOfCredit)
                 err_status = ConnStatus::QuotaError;
 
-            blog(LOG_ERROR,
-                 "[vila-glt] fatal error, stopping session: %s",
+            blog(LOG_ERROR, "%sfatal error, stopping session: %s", lp,
                  info.detail.c_str());
             set_status(err_status, info.detail);
             stopped_on_error_.store(true, std::memory_order_relaxed);
@@ -354,9 +365,9 @@ void TranslationSession::run()
         ReconnectDecision next = policy.on_disconnect(was_connected, connected_ms);
         if (!next.retry) {
             blog(LOG_ERROR,
-                 "[vila-glt] reconnect failed after %d attempts; giving "
-                 "up (last error: %s)",
-                 kMaxReconnectAttempts, info.detail.c_str());
+                 "%sreconnect failed after %d attempts; giving up (last "
+                 "error: %s)",
+                 lp, kMaxReconnectAttempts, info.detail.c_str());
             // Still rate-limited after every retry: most likely the daily
             // quota, so show it as such rather than as a plain connection error.
             set_status(info.reason == DisconnectReason::RateLimited
@@ -370,9 +381,9 @@ void TranslationSession::run()
 
         uint32_t wait = next.wait_ms;
 
-        blog(LOG_WARNING,
-             "[vila-glt] reconnecting (attempt %d/%d, wait %u ms): %s",
-             next.attempt, kMaxReconnectAttempts, wait, info.detail.c_str());
+        blog(LOG_WARNING, "%sreconnecting (attempt %d/%d, wait %u ms): %s",
+             lp, next.attempt, kMaxReconnectAttempts, wait,
+             info.detail.c_str());
         set_status(ConnStatus::Reconnecting, info.detail, next.attempt);
 
         for (uint32_t waited = 0;

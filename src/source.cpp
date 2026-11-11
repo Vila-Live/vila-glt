@@ -47,8 +47,9 @@ struct SourceData {
     // Input side: audio captured from the selected source.
     audio_resampler_t *resampler = nullptr;
     lt::Chunker chunker{3200};
-    std::mutex input_mtx; // guards cfg and input_weak
+    std::mutex input_mtx; // guards cfg, input_weak and name
     lt::SessionConfig cfg;
+    std::string name; // this source's name, kept current by the rename signal
     obs_weak_source_t *input_weak = nullptr; // attached input, if any
 
     // Session control. OBS reports settings changes on the UI thread and
@@ -246,18 +247,24 @@ void sync_session(SourceData *d)
     d->seen_key_version = key_version;
 
     lt::SessionConfig want;
+    std::string name;
     {
         std::lock_guard<std::mutex> lk(d->input_mtx);
         want = d->cfg;
+        name = d->name;
     }
     // Resolve the model through the catalog: an id that is no longer listed
     // falls back to the first model.
     const lt::ModelInfo *model = lt::find_model(lt::model_catalog(), want.model);
+    std::string key_env;
     if (model) {
+        key_env = key_env_name(model, want.key_name);
         want.model = model->id;
-        want.api_key = lt::api_key_get(key_env_name(model, want.key_name));
+        want.api_key = lt::api_key_get(key_env);
         want.echo_target = want.echo_target && model->supports_echo;
     }
+    // With several sources the log has to say whose session a line is about.
+    d->session.set_log_context(name, key_env);
     if (!model || !lt::session_should_run(want, d->program_active)) {
         if (d->session_started) {
             d->session.stop();
@@ -386,10 +393,26 @@ void source_save(void *, obs_data_t *settings)
     obs_data_erase(settings, "key_label");
 }
 
+// OBS signal on this source: keep the name used in the log lines current.
+void source_renamed(void *data, calldata_t *cd)
+{
+    auto *d = static_cast<SourceData *>(data);
+    const char *new_name = calldata_string(cd, "new_name");
+    {
+        std::lock_guard<std::mutex> lk(d->input_mtx);
+        d->name = new_name ? new_name : "";
+    }
+    d->state_version.fetch_add(1, std::memory_order_relaxed);
+}
+
 void *source_create(obs_data_t *settings, obs_source_t *source)
 {
     auto *d = new SourceData();
     d->context = source;
+    const char *name = obs_source_get_name(source);
+    d->name = name ? name : "";
+    signal_handler_connect(obs_source_get_signal_handler(source), "rename",
+                           source_renamed, d);
     migrate_legacy_key(settings);
     create_resampler(d);
     source_update(d, settings);
@@ -401,6 +424,8 @@ void *source_create(obs_data_t *settings, obs_source_t *source)
 void source_destroy(void *data)
 {
     auto *d = static_cast<SourceData *>(data);
+    signal_handler_disconnect(obs_source_get_signal_handler(d->context),
+                              "rename", source_renamed, d);
     // Stop the push loop first: it re-attaches the input periodically.
     d->active = false;
     if (d->thread.joinable()) d->thread.join();

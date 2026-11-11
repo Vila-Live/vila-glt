@@ -77,6 +77,18 @@ TEST_CASE("an unchanged config or a different input does not reconnect")
     REQUIRE_FALSE(lt::session_needs_reconnect(valid(), input));
 }
 
+TEST_CASE("log lines name the source and the key variable")
+{
+    // With several sources the log must say which translation an event belongs
+    // to and which stored key it used (the .env variable name, never the key).
+    REQUIRE(lt::log_prefix("Host-en", "GEMINI_API_KEY_FREE") ==
+            "[vila-glt] 'Host-en' key=GEMINI_API_KEY_FREE: ");
+    REQUIRE(lt::log_prefix("Host", "") == "[vila-glt] 'Host': ");
+    REQUIRE(lt::log_prefix("", "GEMINI_API_KEY") ==
+            "[vila-glt] key=GEMINI_API_KEY: ");
+    REQUIRE(lt::log_prefix("", "") == "[vila-glt] ");
+}
+
 TEST_CASE("the API key hint shows only the last four characters")
 {
     REQUIRE(lt::api_key_hint("").empty());

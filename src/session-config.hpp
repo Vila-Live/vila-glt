@@ -30,4 +30,10 @@ bool session_needs_reconnect(const SessionConfig &prev,
 // only "...", and an empty key gives an empty hint.
 std::string api_key_hint(const std::string &key);
 
+// Prefix for a session's log lines: "[vila-glt] 'source' key=VARIABLE: ".
+// key_env is the .env variable name of the key in use, never the key itself.
+// Parts that are empty are left out.
+std::string log_prefix(const std::string &source_name,
+                       const std::string &key_env);
+
 }

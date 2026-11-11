@@ -36,6 +36,10 @@ public:
 
     void configure(const std::string &api_key, const std::string &model,
                    const std::string &target_lang, bool echo_target);
+    // Names this session in its log lines: the OBS source it belongs to and the
+    // .env variable of the key it uses (never the key itself).
+    void set_log_context(const std::string &source_name,
+                         const std::string &key_env);
     void stop();
 
     void push_input_pcm(const uint8_t *data, size_t len);
@@ -56,6 +60,7 @@ private:
     void run();
     void set_status(ConnStatus s, const std::string &detail = "",
                     int attempt = 0);
+    std::string log_prefix();
 
     ByteRingBuffer input_{16000 * 2 * 5};
     ByteRingBuffer output_{24000 * 2 * 10};
@@ -70,6 +75,7 @@ private:
     std::string model_;
     std::string target_lang_;
     bool echo_target_ = true;
+    std::string log_prefix_ = "[vila-glt] ";
 
     std::atomic<bool> running_{false};
     std::atomic<bool> config_changed_{false};
