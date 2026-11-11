@@ -112,7 +112,7 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
   each with a Catch2 test (`live-protocol.*` also holds `classify_disconnect`
   for WebSocket close codes, HTTP statuses, and JSON error payloads).
 
-## Current state (2026-10-20)
+## Current state (2026-11-11)
 
 - Version `0.2.0` (`buildspec.json`), module/DLL name `obs-vila-glt`, source id
   still `gemini_translated_audio_source` (same as upstream — never install both
@@ -123,13 +123,52 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
   `%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe` (CI uses `choco install
   innosetup`, path `C:\Program Files (x86)\Inno Setup 6`). Build with
   `ISCC /Obuild_x64\installer installer\obs-vila-glt.iss` — `build_x64` is
-  git-ignored. First built 2026-10-20; not yet run/tested by the owner.
+  git-ignored. First built 2026-10-20. Run by the owner 2026-10-20 (Apps entry,
+  name, version, icon OK; no Start-menu entry is expected) and again
+  2026-11-10 on OBS 33.0.1: installs the DLL and `data\` (`models.json`, the
+  three locales, `icon.ico`) correctly.
 - History: initial redesign 2026-10-02 (Claude Code); reconnect/error handling,
   rename to `obs-vila-glt` and icon assets 2026-10-19 (Google Antigravity).
 - Verified by the owner in OBS: single source translating a browser source
-  (lag < 1 s steady state). **Not yet verified in OBS:** reconnect/stop on a real
-  drop or exhausted credits, several sources at once, two-way guest setup
-  (VB-Cable + VDO.Ninja), behaviour of the auto-hide.
+  (lag < 1 s steady state).
+- **OBS test 2026-11-10** (owner + Claude Code), OBS 33.0.1 with the DLL built
+  against the 31.1.1 SDK — loads with no warnings. Input: Media Source playing
+  `D:\cline-dev\mediaUtility\input\r_gril_n_p_sni_z_k_z_v_li.mp4` (2 h 10 min
+  Russian TV show with music, Twitch VOD; the agreed test file — the
+  stripped file name is intended), target `sr`. Results from the OBS log:
+  - ~32 min of open sessions, 13 session starts (language changes, owner
+    pausing by hiding the source); setup completes in 0.16–0.67 s every time;
+    no plugin errors, no audio-buffering growth, clean unload on OBS exit.
+  - **Server session cap seen live:** after 9 min 51 s the server sent GoAway
+    and closed with 1008 ("Connection aborted because the client failed to
+    close the connection after receiving a GoAway signal once the session
+    durat…" — reason cut at the WebSocket 123-byte limit). The plugin
+    reconnected immediately (attempt 1/5, wait 0 ms); translation gap ≈ 0.3 s.
+    Reconnect after the periodic reset is therefore **verified**. GoAway
+    handling / a second overlapping session is **rejected** by the owner
+    (2026-10-19, reconfirmed 2026-11-10) — do not propose it again.
+  - "Cold start" (owner's term) = the translator's voice (timbre/tone) is not
+    stable for the first seconds of every new session, so it recurs about
+    every 10 min. Model-side, no voice parameter exists; owner rates it minor.
+    Not audio loss: input captured while connecting is buffered and sent after
+    `setupComplete`.
+  - Sung lyrics over music are translated too (model behaviour, no option to
+    skip). The owner pauses the translation (hides the source) during songs.
+  - Cost: about $2 for those ~32 min (~$0.06/min, ~$4/h). Billing follows open
+    session time, silence and music included — pausing during songs saves.
+  - Recording in Simple output mode keeps only Track 1 (original + translation
+    mixed); use Advanced output with separate tracks if the translation must be
+    analysed on its own.
+- **Not yet verified in OBS:** wrong API key (immediate stop + auto-hide),
+  short network drop 5–10 s (Reconnecting n/5, then resume), drop > 30 s
+  (5 attempts, then stop + hide), exhausted credits, several sources at once,
+  two-way guest setup (VB-Cable + VDO.Ninja).
+- OBS facts checked 2026-11-10 (do not re-derive): a new scene collection is
+  always created empty ("clean"); global Desktop Audio / Mic/Aux are made only
+  on OBS's very first run (`FirstRun` in `user.ini`). Since OBS 32.0, a source
+  set to "Monitor and Output" whose monitoring device is also captured (e.g. by
+  Desktop Audio) is not duplicated in the output. Monitoring the translation is
+  safe; a loop happens only if the translation's input is Desktop Audio.
 - Open items (ask before starting any of them):
   - Icon (2026-10-20): Material Symbols `interpreter_mode` (Rounded, fill,
     weight 700), chosen over `g_translate` so the plugin does not look like a
@@ -142,7 +181,7 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
     with no arguments rebuilds everything from `media/` byte-identically,
     `preview` renders a size/colour sheet). Used by the README
     (`<picture>`) and the installer (setup icon verified in the built .exe;
-    the Windows "Apps" icon is checked when the owner runs the installer).
+    Windows "Apps" icon verified by the owner 2026-10-20).
   - Warning when Desktop Audio is chosen as input (it can capture the monitored
     translation and loop).
   - Candidate feature, not decided: captions via `outputAudioTranscription` /
@@ -163,3 +202,6 @@ to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic).
   **not** send `turnComplete`/`generationComplete`/`interrupted` in this mode.
   Perceived cut-offs at sentence ends are the model's own phrase-boundary cadence,
   not a plugin bug — the plugin's delivery is gap-free.
+- Sessions are capped at about 10 min (observed 9 min 51 s on 2026-11-10): the
+  server sends GoAway, then closes with 1008 if the client keeps the
+  connection open. The plugin ignores GoAway by design and reconnects at once.
