@@ -30,9 +30,12 @@ voice and a live translation. Several sources can be translated at once.
 > independent project, not affiliated with or endorsed by the OBS Project or
 > Google.
 >
-> Developed with the help of AI coding assistants (Claude Code, Google
-> Antigravity); every release is built, unit-tested and tried by the maintainer
-> in OBS before it is published.
+> **⚠️ AI-assisted development.** A substantial part of this fork's code and
+> documentation was written with AI coding assistants (Claude Code, Google
+> Antigravity), under the maintainer's direction; the original project's code
+> it builds on is its author's. The design and every decision are the
+> maintainer's. Each release is built, passes the unit tests, and is tested by
+> the maintainer in a live OBS setup before it is published.
 
 **Download:** the Windows installer and a drop-in zip are on the
 [Releases page](https://github.com/nklisic/obs-vila-glt/releases/latest) — no
@@ -116,8 +119,9 @@ Notes:
 
 ## Status
 
-Works on **Windows** (the only platform this fork is built and tested on),
-OBS Studio 31–33 (built against the 31.1.1 SDK, tested on 33.0.1). Current
+Works on **Windows** (the only platform this fork is built and tested on) with
+**OBS Studio 33 or newer** (tested on 33.0.1). It installs into the plugin
+location OBS introduced in 33.0, which older versions do not read. Current
 behavior:
 
 - ✅ Any audio source → Gemini streaming (continuous, including pause silence),
@@ -206,24 +210,31 @@ plugin.
 
 ## Install
 
+Requires **OBS Studio 33 or newer**. The plugin goes into the location OBS
+uses for third-party plugins since 33.0
+([OBS knowledge base](https://obsproject.com/kb/legacy-plugin-developer-info)):
+
+```
+C:\ProgramData\obs-studio\plugins\obs-vila-glt\obs-vila-glt.dll
+C:\ProgramData\obs-studio\plugins\obs-vila-glt\data\   (models.json, locale\, icon.ico)
+```
+
 **Installer (recommended):** download
 `obs-vila-glt-<version>-windows-x64-installer.exe` from the
 [Releases page](https://github.com/nklisic/obs-vila-glt/releases/latest) and
-run it with OBS closed. It finds the OBS folder from the registry and needs
-administrator rights. It is uninstalled from Windows *Apps*.
+run it with OBS closed. It needs administrator rights, refuses OBS versions
+older than 33, and removes copies left by earlier versions in OBS's own folder
+(`C:\Program Files\obs-studio\…`, a "Legacy" location that OBS 34 will no
+longer load). It is uninstalled from Windows *Apps*.
 
 **Zip, by hand:** download `obs-vila-glt-<version>-windows-x64.zip`, close OBS
-and copy its `obs-plugins` and `data` folders into your OBS install folder
-(e.g. `C:\Program Files\obs-studio\`).
+and copy its `obs-vila-glt` folder into `C:\ProgramData\obs-studio\plugins\`.
 
 **From your own build** (see *Build from source*): compile the Inno Setup 6
 script with `ISCC /Obuild_x64\installer installer\obs-vila-glt.iss`, or with
-OBS closed copy:
-
-- `build_x64\RelWithDebInfo\obs-vila-glt.dll` →
-  `C:\Program Files\obs-studio\obs-plugins\64bit\`
-- the `data\` folder (locale files and `models.json`) →
-  `C:\Program Files\obs-studio\data\obs-plugins\obs-vila-glt\`
+OBS closed copy `build_x64\RelWithDebInfo\obs-vila-glt.dll` to
+`C:\ProgramData\obs-studio\plugins\obs-vila-glt\` and the `data\` folder to
+`C:\ProgramData\obs-studio\plugins\obs-vila-glt\data\`.
 
 The DLL alone also works: the interface then falls back to English and the model
 table to the copy embedded in the DLL.

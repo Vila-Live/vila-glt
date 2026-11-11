@@ -34,13 +34,24 @@ jobs:
           $dll = "build_x64/RelWithDebInfo/obs-vila-glt.dll"
           if (-not (Test-Path $dll)) { throw "DLL not found at $dll" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          # drop-in zip
-          New-Item -ItemType Directory -Force -Path "stage/obs-plugins/64bit" | Out-Null
-          New-Item -ItemType Directory -Force -Path "stage/data/obs-plugins/obs-vila-glt" | Out-Null
-          Copy-Item $dll "stage/obs-plugins/64bit/"
-          Copy-Item -Recurse "data/*" "stage/data/obs-plugins/obs-vila-glt/"
-          Copy-Item "media/icon.ico" "stage/data/obs-plugins/obs-vila-glt/"
-          "Close OBS, then copy the obs-plugins and data folders into your OBS Studio install directory (e.g. C:\Program Files\obs-studio\). The build is unsigned, so SmartScreen may warn." | Set-Content "stage/INSTALL.txt"
+          # drop-in zip, OBS 33+ plugin layout:
+          #   obs-vila-glt\obs-vila-glt.dll, obs-vila-glt\data\*
+          New-Item -ItemType Directory -Force -Path "stage/obs-vila-glt/data" | Out-Null
+          Copy-Item $dll "stage/obs-vila-glt/"
+          Copy-Item -Recurse "data/*" "stage/obs-vila-glt/data/"
+          Copy-Item "media/icon.ico" "stage/obs-vila-glt/data/"
+          @(
+            "Requires OBS Studio 33 or newer."
+            ""
+            "Close OBS, then copy the obs-vila-glt folder into"
+            "  C:\ProgramData\obs-studio\plugins\"
+            "so that the plugin ends up at"
+            "  C:\ProgramData\obs-studio\plugins\obs-vila-glt\obs-vila-glt.dll"
+            ""
+            "If an older version was installed into C:\Program Files\obs-studio\,"
+            "delete obs-plugins\64bit\obs-vila-glt.dll and data\obs-plugins\obs-vila-glt"
+            "there, or simply use the installer, which does this for you."
+          ) | Set-Content "stage/INSTALL.txt"
           Compress-Archive -Path "stage/*" -DestinationPath "dist/obs-vila-glt-$tag-windows-x64.zip" -Force
           # installer
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$ver" "installer\obs-vila-glt.iss"

@@ -29,11 +29,18 @@ cmake --build --preset windows-x64 --target unit-tests   # pure-logic tests, no 
 ctest --test-dir build_x64 --output-on-failure
 ```
 
-Install: copy `build_x64\RelWithDebInfo\obs-vila-glt.dll` to
-`C:\Program Files\obs-studio\obs-plugins\64bit\` and the `data\` folder to
-`C:\Program Files\obs-studio\data\obs-plugins\obs-vila-glt\` (OBS must be
-closed). The DLL alone also works — UI texts then fall back to English and the
-model table to the copy embedded in the DLL.
+Install (OBS 33+ only, decided 2026-11-12): copy
+`build_x64\RelWithDebInfo\obs-vila-glt.dll` to
+`C:\ProgramData\obs-studio\plugins\obs-vila-glt\` and the `data\` folder to
+`C:\ProgramData\obs-studio\plugins\obs-vila-glt\data\` (OBS must be closed;
+writing there needs admin). This is the only third-party plugin location OBS
+supports from 33.0 on (https://obsproject.com/kb/legacy-plugin-developer-info).
+`C:\Program Files\obs-studio\obs-plugins\64bit\` + `data\obs-plugins\…` and
+`ProgramData\…\bin\64bit\` are **legacy**: flagged in the Plugin Manager and
+not loaded from OBS 34 (~Aug 2027); a copy in the new location wins over a
+legacy one. Do not install there. The installer refuses OBS < 33 and removes
+the legacy copies. The DLL alone also works — UI texts then fall back to
+English and the model table to the copy embedded in the DLL.
 
 Warnings: our targets (plugin, `unit-tests`) build at `/W4` with warnings as
 errors (the template's default); third-party code is `SYSTEM` and IXWebSocket's
@@ -121,7 +128,11 @@ native-speaker corrections are welcome.
 - Version `0.2.1` (`buildspec.json`; also the default in
   `installer/obs-vila-glt.iss`), module/DLL name `obs-vila-glt`, source id
   still `gemini_translated_audio_source` (same as upstream — never install both
-  DLLs). Built and tested on Windows only.
+  DLLs). Built and tested on Windows only. Requires **OBS 33+** from 0.2.1 on
+  (new plugin location, see *Install* above); built against the 31.1.1 SDK.
+- README carries the owner's AI disclaimer ("A substantial part of this
+  fork's code …" — "substantial", not "much", because the upstream code it
+  builds on is not ours). Keep it when editing the README.
 - Versioning (owner, 2026-11-12): patch (0.2.x) for fixes, docs, languages and
   small additions; minor (0.3.0) for a new capability — expected to be
   subtitles. Count up by one, do not skip numbers.
