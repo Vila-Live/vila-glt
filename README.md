@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="media/icon-light.png">
-    <img src="media/icon.png" alt="Vila GLT V— Live Translate" width="120">
+    <img src="media/icon.png" alt="Vila GLT — Live Translate" width="120">
   </picture>
 </p>
 
