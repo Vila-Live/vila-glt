@@ -54,10 +54,15 @@ copy or a fresh download.
 
 UI strings: use `T("Key", "English fallback")` in `source.cpp` and add the key
 to every file in `data/locale/` (`en-US`, `sr-CS` Latin, `sr-SP` Cyrillic,
-`bg-BG`, `el-GR`, `ro-RO`, `hu-HU`, `th-TH`, `fil-PH`). All files must have the
-same keys as `en-US.ini`, UTF-8 without BOM, CRLF. The non-Serbian translations
-were machine-made (2026-11-11) using OBS's own terms for Source/Save/Remove etc.;
-native-speaker corrections are welcome.
+`bg-BG`, `el-GR`, `ro-RO`, `hu-HU`, `sk-SK`, `ru-RU`, `th-TH`, `fil-PH`). All
+files must have the same keys as `en-US.ini`, UTF-8 without BOM, CRLF. The
+non-Serbian translations were machine-made (2026-11-11; Slovak and Russian
+2026-11-13) using OBS's own terms for Source/Save/Remove etc.; native-speaker
+corrections are welcome.
+
+README: `README.md` (English) and `README.sr.md` (Serbian, Latin script, added
+2026-11-13), linked to each other at the top. A README change must be made in
+both files.
 
 ## Rules
 

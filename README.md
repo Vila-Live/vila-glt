@@ -7,6 +7,8 @@
 
 # Vila GLT — Live Translate (`obs-vila-glt`)
 
+**English** · [Srpski](README.sr.md)
+
 [![License: GPL v2](https://img.shields.io/badge/license-GPLv2-blue.svg)](LICENSE)
 
 A native OBS Studio plugin that does real-time **speech-to-speech** translation
@@ -166,7 +168,8 @@ behavior:
   Mixer (audio actually active), so a camera whose microphone is disabled is
   not listed.
 - ✅ Interface texts are localized (`data/locale`): English, Serbian (Latin
-  and Cyrillic), Bulgarian, Greek, Romanian, Hungarian, Thai and Filipino; the
+  and Cyrillic), Bulgarian, Greek, Romanian, Hungarian, Slovak, Russian, Thai
+  and Filipino; the
   plugin follows OBS's interface language and falls back to English without the
   locale files. Translations other than English and Serbian are machine-made
   — corrections from native speakers are welcome.
@@ -445,7 +448,7 @@ src/
   base64.*
 tests/                   Catch2 unit tests (one per pure module)
 data/                    models.json + locale/ (en-US, sr-CS, sr-SP, bg-BG,
-                         el-GR, ro-RO, hu-HU, th-TH, fil-PH)
+                         el-GR, ro-RO, hu-HU, sk-SK, ru-RU, th-TH, fil-PH)
 media/                   project icon (README, installer); the OBS Sources
                          list currently shows OBS's built-in speaker icon
 installer/               Inno Setup 7 script for the Windows installer
@@ -474,7 +477,7 @@ The **target language** dropdown offers the languages
 [official Live Translate docs](https://ai.google.dev/gemini-api/docs/live-api/live-translate)),
 each labelled with its native name plus the English name (e.g. `日本語
 (Japanese)`) so both native speakers and others can recognize it. Common
-languages — English, Chinese, Japanese, Korean, Spanish, French, German,
+languages — English, Serbian, Chinese, Japanese, Korean, Spanish, French, German,
 Portuguese (BR), Italian, Russian, Indonesian, Thai, Vietnamese — are pinned to
 the top; the rest follow in English-name alphabetical order. The exact list and
 BCP-47 codes live in [`data/models.json`](data/models.json).
