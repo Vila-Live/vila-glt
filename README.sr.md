@@ -36,7 +36,7 @@ Google Gemini Live modelima (native audio i live translate); *GLT* znači
 > Nezavisan projekat, nije povezan sa OBS Project-om ni sa Google-om niti ga
 > oni podržavaju.
 
-> [!IMPORTANT]
+> ⚠️ [!IMPORTANT]
 > **Razvoj uz pomoć AI-ja.** Znatan deo koda i dokumentacije ovog forka napisan
 > je uz pomoć AI asistenata za programiranje (Claude Code, Google Antigravity),
 > pod vođstvom održavaoca; kod originalnog projekta na kome se zasniva delo je

@@ -274,6 +274,20 @@ both files.
     not started. It is still listed as a non-goal in the Rules and README —
     change those when he starts it.
   - Reconnect window (see the 2026-11-11 finding above).
+  - "Pause translation" hotkey (owner, 2026-11-13; candidate for 0.2.2): while
+    paused, the session stays open but silence is sent instead of the input (the
+    original is not muted). Use case: a streamer who sings — the model
+    translates lyrics literally, and songs mix English and Russian verses, so
+    echo-off cannot be relied on; the whole song must be paused. Compared with
+    hiding (new session → voice settles again, ~1 s reconnect) and muting the
+    translation (model still hears the song → its translated tail plays after
+    unmute), pause keeps the voice stable, needs no reconnect and leaves no tail;
+    the session is still billed. Volume ducking (translation down, singer up) is
+    **not** the plugin's job: the owner prefers an Advanced Scene Switcher macro
+    (owner's working levels for a voice-over stream: original −18 dB,
+    translation −12 dB; the plugin taps pre-fader, so the original's fader does
+    not change what Gemini hears). Automatic song detection (e.g. YAMNet) was
+    discussed and not recommended (false triggers both ways, detection lag).
 - README screenshots (2026-11-12): the owner's own (`screenshots/live_translate_*.png`,
   API key blurred) replaced the upstream ones; he makes new ones himself.
 
