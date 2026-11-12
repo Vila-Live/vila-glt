@@ -243,7 +243,7 @@ the system ProgramData folder, wherever OBS itself lives. Two special cases:
   `obs-vila-glt` folder into `<your OBS folder>\plugins\` (create `plugins`
   if needed).
 
-**From your own build** (see *Build from source*): compile the Inno Setup 6
+**From your own build** (see *Build from source*): compile the Inno Setup 7
 script with `ISCC /Obuild_x64\installer installer\obs-vila-glt.iss`, or with
 OBS closed copy `build_x64\RelWithDebInfo\obs-vila-glt.dll` to
 `C:\ProgramData\obs-studio\plugins\obs-vila-glt\` and the `data\` folder to
@@ -268,14 +268,28 @@ table to the copy embedded in the DLL.
    - **Connection** — leave it switched on. Once it connects the status reads
      *Connected* (use **Refresh status**).
 
+   <p align="center">
+     <img src="screenshots/live_translate_properties.png"
+          alt="Live Translate properties: Engine, Translate Settings, Connection" width="600">
+   </p>
+
 3. The source plays the translated voice. Mix it against the original in the
    OBS mixer (e.g. lower the original under the translation for a voice-over),
    or route it to its own track in *Advanced Audio Properties*.
 
 Repeat for every audio source you want translated.
 
-> The screenshots in `screenshots/` are from the original project and show its
-> filter-based setup, not this fork's properties.
+The eye icon in the Sources list switches the translation: a hidden source (or
+one not in the active scene) is paused and has no open session, so nothing is
+billed; showing it again connects in under a second. The translation appears in
+the Audio Mixer as its own channel only while it is active.
+
+<p align="center">
+  <img src="screenshots/live_translate_off.png"
+       alt="Live Translate hidden: paused, no mixer channel" width="49%">
+  <img src="screenshots/live_translate_on.png"
+       alt="Live Translate visible: translating, own mixer channel" width="49%">
+</p>
 
 ## Remote control (OBS WebSocket)
 
@@ -429,7 +443,7 @@ data/                    models.json + locale/ (en-US, sr-CS, sr-SP, bg-BG,
                          el-GR, ro-RO, hu-HU, th-TH, fil-PH)
 media/                   project icon (README, installer); the OBS Sources
                          list currently shows OBS's built-in speaker icon
-installer/               Inno Setup 6 script for the Windows installer
+installer/               Inno Setup 7 script for the Windows installer
 tools/build-icons.py     regenerates media/icon.png, icon-light.png, icon.ico
 cmake/, CMakePresets.json, buildspec.json
 ```
