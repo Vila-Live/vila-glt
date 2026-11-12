@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="media/icon-light.png">
-    <img src="media/icon.png" alt="Vila GLT — Live Translate" width="120">
+    <img src="media/icon.png" alt="Vila GLT V— Live Translate" width="120">
   </picture>
 </p>
 
@@ -29,8 +29,9 @@ voice and a live translation. Several sources can be translated at once.
 > Linux build files inherited from the original are kept but untested. An
 > independent project, not affiliated with or endorsed by the OBS Project or
 > Google.
->
-> **⚠️ AI-assisted development.** A substantial part of this fork's code and
+
+> [!IMPORTANT]
+> **AI-assisted development.** A substantial part of this fork's code and
 > documentation was written with AI coding assistants (Claude Code, Google
 > Antigravity), under the maintainer's direction; the original project's code
 > it builds on is its author's. The design and every decision are the
