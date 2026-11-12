@@ -247,9 +247,10 @@ both files.
 - Feedback for Google (preview model): owner posts it himself, preferably on
   the Google AI Developers Forum (Gemini API). Points: sung lyrics translated
   — and with target `en` + echo off, English-sung verses were still heard in
-  the translation (owner's ru→en test of a streamer, 2026-11-13; plain
-  same-language speech stays silent, so likely the music), hence a request for
-  an optional source-language restriction; voice unstable at each session start (~10 min cap), voice does not follow
+  the translation (owner's ru→en test of a streamer, 2026-11-13). **To verify
+  before posting:** whether echo off silences plain spoken English with target
+  `en` — if yes, the cause is the music; if not, echo off does not work at all.
+  Hence a request for an optional source-language restriction; voice unstable at each session start (~10 min cap), voice does not follow
   the speaker's gender after a speaker change, 1008 close reason truncated.
 - OBS facts checked 2026-11-10 (do not re-derive): a new scene collection is
   always created empty ("clean"); global Desktop Audio / Mic/Aux are made only
