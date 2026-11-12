@@ -16,6 +16,10 @@ source — streams it to Gemini, and plays the translated speech back as a
 separate OBS audio source, so a stream/recording can carry both the original
 voice and a live translation. Several sources can be translated at once.
 
+The plugin is part of **Vila**, a system of voice tools and agents built on
+Google's Gemini Live models (native audio and live translate); *GLT* stands
+for *Gemini Live Translate*. It brings Vila's live translation into OBS Studio.
+
 > **Fork & Attribution:** `obs-vila-glt` is a fork of
 > [weisunglee/obs-live-translate](https://github.com/weisunglee/obs-live-translate)
 > (*Gemini Live Translate for OBS*, v0.1.6, by **Only26k / weisunglee**),
