@@ -90,6 +90,9 @@ native-speaker corrections are welcome.
   broadcast, while the red error status stays in Properties until the source is
   shown again. `source_deactivate` only sets flags, so hiding from the push-loop
   thread does not deadlock.
+  Output flags: `OBS_SOURCE_AUDIO | OBS_SOURCE_DO_NOT_DUPLICATE` (owner,
+  2026-11-12) — a duplicate would open a second billed session for the same
+  input; Paste (Reference) and duplicated scenes share the one source.
   Source-list icon: `info.icon_type = OBS_ICON_TYPE_AUDIO_OUTPUT` (speaker).
   A plugin cannot supply its own Sources-list icon: OBS picks the theme's icon
   for the type, and `OBS_ICON_TYPE_CUSTOM` falls back to the default icon

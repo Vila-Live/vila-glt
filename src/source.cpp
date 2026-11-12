@@ -784,7 +784,10 @@ struct obs_source_info live_translate_source_info = [] {
     struct obs_source_info info = {};
     info.id = "gemini_translated_audio_source";
     info.type = OBS_SOURCE_TYPE_INPUT;
-    info.output_flags = OBS_SOURCE_AUDIO;
+    // Not duplicable: a duplicate would open a second, separately billed
+    // session translating the same input. Paste (Reference) and duplicated
+    // scenes share this one source instead, as with OBS's own audio capture.
+    info.output_flags = OBS_SOURCE_AUDIO | OBS_SOURCE_DO_NOT_DUPLICATE;
     info.icon_type = OBS_ICON_TYPE_AUDIO_OUTPUT;
     info.get_name = source_get_name;
     info.create = source_create;

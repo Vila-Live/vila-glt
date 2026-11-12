@@ -150,6 +150,10 @@ behavior:
   languages); each has its own connection, language and settings. Other
   *Live Translate* sources are not offered as inputs, so a translation
   is never translated again.
+- ✅ A *Live Translate* source **cannot be duplicated**: a copy would open a
+  second, separately billed session for the same input. *Paste (Reference)*
+  and duplicated scenes share the one source; for another input or language
+  add a new *Live Translate* source with **+**.
 - ✅ The **Connection** section's checkbox switches the session on and off by
   hand (on by default); its status line is coloured by severity and has a
   **Refresh status** button, since OBS does not refresh open properties itself.
