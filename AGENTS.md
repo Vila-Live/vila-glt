@@ -162,9 +162,20 @@ native-speaker corrections are welcome.
   `%APPDATA%\obs-studio` were unaffected). Rules since then: `UsePreviousAppDir=no`;
   never use `{app}` in `[InstallDelete]`/`[Files]` — spell out full paths of
   our own files only (`PluginDir` define); `PrepareToInstall` aborts unless
-  `{app}` is exactly the plugin folder; and **every installer change is run
-  in Windows Sandbox (or another throwaway VM) before it reaches the owner's
-  OBS.**
+  `{app}` is exactly the plugin folder. The owner declined Windows Sandbox
+  (2026-11-12): installer changes are tested on his machine, so before every
+  run review the full list of what `[InstallDelete]`/`[Files]` touch and tell
+  him. The fixed installer was verified 2026-11-12 on OBS 33.0.1: files only
+  in `C:\ProgramData\obs-studio\plugins\obs-vila-glt\`, OBS untouched
+  (2291 files), loaded from there, Apps entry points to ProgramData.
+- Plugin search on Windows (OBS 33.0.1 `PluginModuleLoader_Windows.cpp`,
+  checked 2026-11-12): `os_get_program_data_path("obs-studio/plugins/%module%")`
+  = `CSIDL_COMMON_APPDATA`, the same folder as Inno's `{commonappdata}`, and
+  independent of where OBS is installed (custom folder/drive, winget, Steam).
+  **Portable OBS ignores ProgramData** and reads `<OBS root>\plugins\%module%`
+  (legacy `<OBS root>\obs-plugins\64bit\` still scanned); the installer does
+  not handle portable or locate Steam installs on purpose — README, the
+  installer's "not found" message and the zip's INSTALL.txt explain both.
 - History: initial redesign 2026-10-02 (Claude Code); reconnect/error handling,
   rename to `obs-vila-glt` and icon assets 2026-10-19 (Google Antigravity).
 - Verified by the owner in OBS: single source translating a browser source

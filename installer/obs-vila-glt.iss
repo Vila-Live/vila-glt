@@ -116,8 +116,11 @@ begin
   ObsExe := ObsDir + '\bin\64bit\obs64.exe';
   if (ObsDir = '') or not FileExists(ObsExe) then
   begin
-    Result := MsgBox('OBS Studio was not found on this computer.' + #13#10 +
+    Result := MsgBox('OBS Studio was not found in its usual place.' + #13#10 +
       'This plugin needs OBS Studio {#MinObsMajor} or newer.' + #13#10#13#10 +
+      '- OBS from Steam: choose Yes; it loads plugins from this location too.' + #13#10 +
+      '- Portable OBS: choose No and use the zip instead (copy its' + #13#10 +
+      '  obs-vila-glt folder into <your OBS folder>\plugins\).' + #13#10#13#10 +
       'Install anyway?', mbConfirmation, MB_YESNO) = IDYES;
     exit;
   end;

@@ -230,6 +230,15 @@ longer load). It is uninstalled from Windows *Apps*.
 **Zip, by hand:** download `obs-vila-glt-<version>-windows-x64.zip`, close OBS
 and copy its `obs-vila-glt` folder into `C:\ProgramData\obs-studio\plugins\`.
 
+**Where OBS is installed does not matter** — OBS reads third-party plugins from
+the system ProgramData folder, wherever OBS itself lives. Two special cases:
+
+- **OBS from Steam:** the installer may not find OBS and asks *Install
+  anyway?* — choose **Yes**; Steam's OBS loads plugins from ProgramData too.
+- **Portable OBS** ignores ProgramData. Use the zip and copy its
+  `obs-vila-glt` folder into `<your OBS folder>\plugins\` (create `plugins`
+  if needed).
+
 **From your own build** (see *Build from source*): compile the Inno Setup 6
 script with `ISCC /Obuild_x64\installer installer\obs-vila-glt.iss`, or with
 OBS closed copy `build_x64\RelWithDebInfo\obs-vila-glt.dll` to
