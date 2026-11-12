@@ -315,7 +315,7 @@ plugin support needed:
 |---|---|---|
 | `input_source` | string | UUID of the OBS source to translate (empty stops the session) |
 | `model` | string | model `id` from [`data/models.json`](data/models.json) |
-| `target_lang` | string | language code from [`data/models.json`](data/models.json) (e.g. `en`, `zh`, `ja`, `pt-BR`) — the value, not the display name |
+| `target_lang` | string | the language's `code` from [`data/models.json`](data/models.json), not its `name` — e.g. `sr`, not `Српски (Serbian)` |
 | `echo_target` | bool | repeat speech that is already in the target language |
 | `playback_delay` | number | seconds to delay the translated audio stream, clamped to 0-30 |
 | `enabled` | bool | the Connection switch: `false` closes the session, `true` reconnects |
@@ -478,6 +478,91 @@ languages — English, Chinese, Japanese, Korean, Spanish, French, German,
 Portuguese (BR), Italian, Russian, Indonesian, Thai, Vietnamese — are pinned to
 the top; the rest follow in English-name alphabetical order. The exact list and
 BCP-47 codes live in [`data/models.json`](data/models.json).
+
+<details>
+<summary>Language codes (77) — use the <code>code</code> for <code>target_lang</code></summary>
+
+| code | name |
+|---|---|
+| `en` | English |
+| `sr` | Српски (Serbian) |
+| `zh` | 中文 (Chinese) |
+| `ja` | 日本語 (Japanese) |
+| `ko` | 한국어 (Korean) |
+| `es` | Español (Spanish) |
+| `fr` | Français (French) |
+| `de` | Deutsch (German) |
+| `pt-BR` | Português (Portuguese, BR) |
+| `it` | Italiano (Italian) |
+| `ru` | Русский (Russian) |
+| `id` | Bahasa Indonesia (Indonesian) |
+| `th` | ไทย (Thai) |
+| `vi` | Tiếng Việt (Vietnamese) |
+| `af` | Afrikaans |
+| `ak` | Akan |
+| `sq` | Shqip (Albanian) |
+| `am` | አማርኛ (Amharic) |
+| `ar` | العربية (Arabic) |
+| `hy` | Հայերեն (Armenian) |
+| `az` | Azərbaycan (Azerbaijani) |
+| `eu` | Euskara (Basque) |
+| `be` | Беларуская (Belarusian) |
+| `bn` | বাংলা (Bengali) |
+| `bg` | Български (Bulgarian) |
+| `my` | မြန်မာ (Burmese) |
+| `ca` | Català (Catalan) |
+| `hr` | Hrvatski (Croatian) |
+| `cs` | Čeština (Czech) |
+| `da` | Dansk (Danish) |
+| `nl` | Nederlands (Dutch) |
+| `et` | Eesti (Estonian) |
+| `fil` | Filipino |
+| `fi` | Suomi (Finnish) |
+| `gl` | Galego (Galician) |
+| `ka` | ქართული (Georgian) |
+| `el` | Ελληνικά (Greek) |
+| `gu` | ગુજરાતી (Gujarati) |
+| `ha` | Hausa |
+| `he` | עברית (Hebrew) |
+| `hi` | हिन्दी (Hindi) |
+| `hu` | Magyar (Hungarian) |
+| `is` | Íslenska (Icelandic) |
+| `jv` | Basa Jawa (Javanese) |
+| `kn` | ಕನ್ನಡ (Kannada) |
+| `kk` | Қазақ (Kazakh) |
+| `km` | ខ្មែរ (Khmer) |
+| `rw` | Kinyarwanda |
+| `lo` | ລາວ (Lao) |
+| `lv` | Latviešu (Latvian) |
+| `lt` | Lietuvių (Lithuanian) |
+| `mk` | Македонски (Macedonian) |
+| `ms` | Bahasa Melayu (Malay) |
+| `ml` | മലയാളം (Malayalam) |
+| `mr` | मराठी (Marathi) |
+| `mn` | Монгол (Mongolian) |
+| `ne` | नेपाली (Nepali) |
+| `no` | Norsk (Norwegian) |
+| `fa` | فارسی (Persian) |
+| `pl` | Polski (Polish) |
+| `pt-PT` | Português (Portuguese, Portugal) |
+| `pa` | ਪੰਜਾਬੀ (Punjabi) |
+| `ro` | Română (Romanian) |
+| `sd` | سنڌي (Sindhi) |
+| `si` | සිංහල (Sinhala) |
+| `sk` | Slovenčina (Slovak) |
+| `sl` | Slovenščina (Slovenian) |
+| `su` | Basa Sunda (Sundanese) |
+| `sw` | Kiswahili (Swahili) |
+| `sv` | Svenska (Swedish) |
+| `ta` | தமிழ் (Tamil) |
+| `te` | తెలుగు (Telugu) |
+| `tr` | Türkçe (Turkish) |
+| `uk` | Українська (Ukrainian) |
+| `ur` | اردو (Urdu) |
+| `uz` | Oʻzbek (Uzbek) |
+| `zu` | IsiZulu (Zulu) |
+
+</details>
 
 Chinese uses the script-less code **`zh`**, not `zh-Hant` / `zh-Hans`. Output is
 speech, which has no script, so the script-specific codes sound identical — and

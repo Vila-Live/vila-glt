@@ -120,7 +120,9 @@ native-speaker corrections are welcome.
 - `data/models.json` — the model + language table, embedded into the plugin by
   `cmake/common/embed-models.cmake`; `model-store.*` loads it plus optional
   override files. Adding a model for an existing provider is a JSON change; a
-  new provider needs a protocol implementation.
+  new provider needs a protocol implementation. The README's *Language codes*
+  table (in *Supported languages*) is a copy of the `languages` list — update
+  it when languages change.
 - `model-catalog.*`, `dotenv.*`, `session-config.*`, `audio-pacing.*`, `audio-convert.*`, `ring-buffer.*`,
   `backoff.*`, `reconnect-policy.*`, `live-protocol.*`, `output-delay.*`, `base64.*` — pure modules,
   each with a Catch2 test (`live-protocol.*` also holds `classify_disconnect`
