@@ -24,8 +24,20 @@ jobs:
         run: cmake --build --preset windows-x64
       - name: Unit tests
         run: ctest --test-dir build_x64 -C RelWithDebInfo --output-on-failure
-      - name: Install Inno Setup
-        run: choco install innosetup --no-progress -y
+      - name: Install Inno Setup 7
+        shell: pwsh
+        run: |
+          # Pinned version from the official release; refuse an unsigned or
+          # differently signed download.
+          $url = "https://github.com/jrsoftware/issrc/releases/download/is-7_1_1/innosetup-7.1.1-x64.exe"
+          $exe = Join-Path $env:RUNNER_TEMP "innosetup-7.1.1-x64.exe"
+          Invoke-WebRequest -Uri $url -OutFile $exe -UseBasicParsing
+          $sig = Get-AuthenticodeSignature $exe
+          if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'Pyrsys B\.V\.') {
+            throw "Inno Setup installer signature check failed: $($sig.Status) $($sig.SignerCertificate.Subject)"
+          }
+          $p = Start-Process $exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/ALLUSERS' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Inno Setup install failed ($($p.ExitCode))" }
       - name: Package
         shell: pwsh
         run: |
@@ -54,7 +66,9 @@ jobs:
           ) | Set-Content "stage/INSTALL.txt"
           Compress-Archive -Path "stage/*" -DestinationPath "dist/obs-vila-glt-$tag-windows-x64.zip" -Force
           # installer
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$ver" "installer\obs-vila-glt.iss"
+          $iscc = Get-ChildItem "C:\Program Files\Inno Setup 7\ISCC.exe", "C:\Program Files (x86)\Inno Setup 7\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $iscc) { throw "ISCC.exe (Inno Setup 7) not found" }
+          & $iscc.FullName "/DMyAppVersion=$ver" "installer\obs-vila-glt.iss"
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
           Copy-Item "installer/Output/*.exe" dist/
       - uses: actions/upload-artifact@v4

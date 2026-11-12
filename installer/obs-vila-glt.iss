@@ -15,6 +15,9 @@
 #define MyAppPublisher "nklisic"
 #define MyAppURL "https://github.com/nklisic/obs-vila-glt"
 #define MinObsMajor 33
+; The one folder this installer may own. Every path below is spelled out in
+; full (never {app}\...), so a wrong {app} can never point a delete at OBS.
+#define PluginDir "{commonappdata}\obs-studio\plugins\obs-vila-glt"
 
 [Setup]
 ; Keep AppId stable across versions so upgrades/uninstall work.
@@ -24,8 +27,12 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}/issues
-DefaultDirName={commonappdata}\obs-studio\plugins\obs-vila-glt
+DefaultDirName={#PluginDir}
 DisableDirPage=yes
+; Never reuse the folder of an earlier install: versions before 0.2.1 were
+; registered with OBS's own folder as their location (2026-11-12 incident:
+; reusing it made {app} = C:\Program Files\obs-studio).
+UsePreviousAppDir=no
 DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 ; x64os, not x64compatible: an ARM64 build of OBS cannot load this x64 DLL.
@@ -37,29 +44,32 @@ WizardStyle=modern
 SetupIconFile=..\media\icon.ico
 UninstallDisplayName={#MyAppName}
 ; Icon shown in Windows "Apps"; installed with the plugin's data files below.
-UninstallDisplayIcon={app}\data\icon.ico
+UninstallDisplayIcon={#PluginDir}\data\icon.ico
 OutputBaseFilename=obs-vila-glt-{#MyAppVersion}-windows-x64-installer
 ; Use Restart Manager to detect/close OBS if it has the DLL open.
 CloseApplications=yes
 RestartApplications=no
 
 [InstallDelete]
-; Earlier versions installed into OBS's own folder (legacy location).
+; Only our own files, by full name. Earlier versions installed into OBS's own
+; folder (legacy location):
 Type: files; Name: "{code:GetOBSDir}\obs-plugins\64bit\obs-vila-glt.dll"
 Type: files; Name: "{code:GetOBSDir}\obs-plugins\64bit\obs-vila-glt.pdb"
 Type: filesandordirs; Name: "{code:GetOBSDir}\data\obs-plugins\obs-vila-glt"
+; ...and the 2026-11-12 test build put these in OBS's root/data folder:
+Type: files; Name: "{code:GetOBSDir}\obs-vila-glt.dll"
 ; Legacy ProgramData layout (DLL under bin\64bit) and stale data files.
-Type: filesandordirs; Name: "{app}\bin"
-Type: filesandordirs; Name: "{app}\data"
+Type: filesandordirs; Name: "{#PluginDir}\bin"
+Type: filesandordirs; Name: "{#PluginDir}\data"
 
 [Files]
-Source: "..\build_x64\RelWithDebInfo\obs-vila-glt.dll"; DestDir: "{app}"; \
+Source: "..\build_x64\RelWithDebInfo\obs-vila-glt.dll"; DestDir: "{#PluginDir}"; \
   Flags: ignoreversion
-Source: "..\data\*"; DestDir: "{app}\data"; Flags: recursesubdirs ignoreversion
-Source: "..\media\icon.ico"; DestDir: "{app}\data"; Flags: ignoreversion
+Source: "..\data\*"; DestDir: "{#PluginDir}\data"; Flags: recursesubdirs ignoreversion
+Source: "..\media\icon.ico"; DestDir: "{#PluginDir}\data"; Flags: ignoreversion
 
 [UninstallDelete]
-Type: dirifempty; Name: "{app}"
+Type: dirifempty; Name: "{#PluginDir}"
 
 [Code]
 { The OBS Studio install directory, from the registry written by OBS's own
@@ -80,6 +90,17 @@ begin
   Result := FindOBSDir();
   if Result = '' then
     Result := ExpandConstant('{commonpf64}\obs-studio');
+end;
+
+{ Last line of defence: refuse to touch anything unless the install folder is
+  exactly our plugin folder. }
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  if CompareText(ExpandConstant('{app}'), ExpandConstant('{#PluginDir}')) <> 0 then
+    Result := 'Unexpected install folder: ' + ExpandConstant('{app}') + #13#10 +
+      'Expected: ' + ExpandConstant('{#PluginDir}') + #13#10 +
+      'Nothing was changed.';
 end;
 
 { OBS Studio 33 introduced the plugin location used here; older versions do

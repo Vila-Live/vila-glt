@@ -146,14 +146,25 @@ native-speaker corrections are welcome.
   require all three OSes, but rejects or heavily discourages plugins written
   largely with AI tools and requires an AI disclaimer; it also discourages
   `obs-` in new repo names. The README carries an AI-assistance note.
-- Installer: Inno Setup 6.7.3 is installed per-user at
-  `%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe` (CI uses `choco install
-  innosetup`, path `C:\Program Files (x86)\Inno Setup 6`). Build with
+- Installer: **Inno Setup 7.1.1** (since 2026-11-12; 6.x uninstalled) is
+  installed per-user at `%LOCALAPPDATA%\Programs\Inno Setup 7\ISCC.exe`; CI
+  downloads the same pinned version from jrsoftware's GitHub release, checks
+  its Authenticode signature (Pyrsys B.V.) and installs it. Build with
   `ISCC /Obuild_x64\installer installer\obs-vila-glt.iss` — `build_x64` is
-  git-ignored. First built 2026-10-20. Run by the owner 2026-10-20 (Apps entry,
-  name, version, icon OK; no Start-menu entry is expected) and again
-  2026-11-10 on OBS 33.0.1: installs the DLL and `data\` (`models.json`, the
-  locales, `icon.ico`) correctly.
+  git-ignored. The 0.2.0 installer (Program Files layout) was run by the owner
+  2026-10-20 and 2026-11-10.
+- **Installer incident 2026-11-12 — never repeat:** a test build of the
+  ProgramData installer reused the previous install's folder (Inno's default
+  `UsePreviousAppDir=yes`; 0.2.0 was registered with
+  `InstallLocation=C:\Program Files\obs-studio\`), so `{app}` became OBS's own
+  folder and `[InstallDelete] {app}\bin` / `{app}\data` deleted OBS's `bin`
+  and `data`. The owner had to uninstall and reinstall OBS (his settings in
+  `%APPDATA%\obs-studio` were unaffected). Rules since then: `UsePreviousAppDir=no`;
+  never use `{app}` in `[InstallDelete]`/`[Files]` — spell out full paths of
+  our own files only (`PluginDir` define); `PrepareToInstall` aborts unless
+  `{app}` is exactly the plugin folder; and **every installer change is run
+  in Windows Sandbox (or another throwaway VM) before it reaches the owner's
+  OBS.**
 - History: initial redesign 2026-10-02 (Claude Code); reconnect/error handling,
   rename to `obs-vila-glt` and icon assets 2026-10-19 (Google Antigravity).
 - Verified by the owner in OBS: single source translating a browser source
