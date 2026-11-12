@@ -267,8 +267,8 @@ native-speaker corrections are welcome.
     not started. It is still listed as a non-goal in the Rules and README —
     change those when he starts it.
   - Reconnect window (see the 2026-11-11 finding above).
-  - New README screenshots: the owner makes them; then replace the upstream
-    images in `screenshots/` and the README note about them.
+- README screenshots (2026-11-12): the owner's own (`screenshots/live_translate_*.png`,
+  API key blurred) replaced the upstream ones; he makes new ones himself.
 
 ## Key technical facts (verified against Google's docs)
 
