@@ -77,8 +77,11 @@ both files.
   author as someone else — and never add Claude/AI trailers. Our work lives on
   `master`; `main` mirrors upstream and is not committed to. Do not push or
   publish anything unless explicitly told.
-- Keep changes scoped. The non-goals (captions, one input into several languages
-  at once, explicit source-language selection) remain out of scope.
+- Keep changes scoped. The README's *Roadmap* (owner, 2026-11-14) replaced the
+  old non-goals: captions are planned (0.3.0); several languages from one input
+  already work through several sources (delivering a viewer-selectable language
+  is outside the plugin); source-language selection is impossible (no API
+  parameter).
 
 ## Architecture (quick map)
 
@@ -293,8 +296,7 @@ both files.
     translation and loop).
   - Captions/subtitles via `outputAudioTranscription` /
     `inputAudioTranscription`: owner expects this to be 0.3.0 (2026-11-12),
-    not started. It is still listed as a non-goal in the Rules and README —
-    change those when he starts it.
+    not started; listed as planned in the README's *Roadmap*.
   - Reconnect window (see the 2026-11-11 finding above).
   - "Pause translation" hotkey (owner, 2026-11-13; candidate for 0.2.2): while
     paused, the session stays open but silence is sent instead of the input (the

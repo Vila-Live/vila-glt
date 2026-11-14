@@ -573,10 +573,22 @@ označenim pismom), dok `zh` ispravno i prevodi i ponavlja.
 **Izvorni jezik se ne bira** — Gemini sam prepoznaje jezik govora, pa biraš samo
 jezik *na koji* se prevodi.
 
-## Van obima (v1)
+## Plan razvoja
 
-Titlovi, prevod jednog ulaza na više jezika istovremeno i izričit izbor
-izvornog jezika su van obima.
+Planirano:
+
+- **Titlovi** iz transkripcije originalnog i prevedenog govora koju daje model
+  (očekivano u 0.3.0).
+
+Dobro je znati:
+
+- **Više jezika iz istog ulaza** već radi: dodaj po jedan *Live Translate*
+  izvor za svaki jezik, svi sa istim *Izvorom koji se prevodi*. Svaki je
+  zasebna sesija koja se posebno naplaćuje i zaseban audio izvor, pa ti biraš
+  na koji track ide. Jedan stream ipak ne može gledaocima da ponudi izbor
+  jezika — za to treba poseban stream za svaki jezik ili sopstveni plejer.
+- **Izvorni jezik ne može da se bira:** Gemini Live Translate API nema takav
+  parametar, a model sam prepoznaje jezik govora.
 
 ## Licenca
 

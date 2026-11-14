@@ -576,10 +576,23 @@ correctly.
 There is **no source-language selection** — Gemini auto-detects the spoken
 language, so you only pick what to translate *into*.
 
-## Non-goals (v1)
+## Roadmap
 
-Captions/subtitles, translating one input into several languages at once, and
-explicit source-language selection are out of scope.
+Planned:
+
+- **Captions/subtitles** from the model's transcription of the original and the
+  translated speech (expected in 0.3.0).
+
+Good to know:
+
+- **Several languages from one input** already work: add one *Live Translate*
+  source per language, all with the same *Source to translate*. Each is a
+  separate, separately billed session and its own audio source, so you decide
+  which track it goes to. A single stream cannot offer viewers a choice of
+  language, though — that takes a separate stream per language or your own
+  player.
+- **Choosing the source language** is not possible: the Gemini Live Translate
+  API has no such parameter, and the model detects the spoken language itself.
 
 ## License
 
