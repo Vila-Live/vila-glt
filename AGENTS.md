@@ -148,16 +148,21 @@ both files.
 - Versioning (owner, 2026-11-12): patch (0.2.x) for fixes, docs, languages and
   small additions; minor (0.3.0) for a new capability — expected to be
   subtitles. Count up by one, do not skip numbers.
-- Not published yet: no `origin` remote, no GitHub repo, no release. Home:
-  the GitHub organization `vila-live` (display name "Vila Live", owner's
-  decision 2026-11-14 to keep Vila apart from his personal account), repo
-  `vila-live/vila-glt` — a standalone repo, not a GitHub fork. Wait for
-  the owner's word before any of that. Plan: public GitHub repo + GitHub
-  Releases (installer `.exe` + drop-in `.zip`), Windows only. `release.yaml`
+- **Published 2026-11-14:** public repo `vila-live/vila-glt` (`origin`,
+  default branch `master`) in the GitHub organization created as `Vila-Live`
+  (display name "Vila Live"; URLs are case-insensitive, so `vila-live` links
+  work; owner's decision to keep Vila apart from his personal account) — a
+  standalone repo, not a GitHub fork. Release `v0.2.1` (installer `.exe` +
+  drop-in `.zip`, Windows only) was built by `release.yaml` on its first run.
+  Every push and release still needs the owner's word. `gh` 2.104.0 is
+  installed per-user at `%LOCALAPPDATA%\Programs\GitHub CLI\bin\gh.exe`
+  (account `nklisic`, scopes repo, read:org, gist, workflow — not
+  admin:org; the owner edits org settings himself). `release.yaml`
   builds on a `v*` tag on `windows-2022`, runs the unit tests and attaches
   both files; the macOS/Linux jobs were removed 2026-11-12 (not supported by
-  the owner; build files kept, untested). The workflow has never run yet.
-  It refuses a tag that differs from `buildspec.json`'s version; both files
+  the owner; build files kept, untested). GitHub warns that the v4 actions
+  (checkout, upload/download-artifact) run on deprecated Node.js 20 — move
+  them to their next major version when convenient. It refuses a tag that differs from `buildspec.json`'s version; both files
   are named `vila-glt-<version>-windows-x64[-installer].{zip,exe}` without
   the `v`. **Push only `master` and the new tag** (`git push -u origin master`,
   `git push origin v0.2.1`), never `--tags`/`--mirror`: the local upstream tags
