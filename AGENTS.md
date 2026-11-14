@@ -30,9 +30,9 @@ ctest --test-dir build_x64 --output-on-failure
 ```
 
 Install (OBS 33+ only, decided 2026-11-12): copy
-`build_x64\RelWithDebInfo\obs-vila-glt.dll` to
-`C:\ProgramData\obs-studio\plugins\obs-vila-glt\` and the `data\` folder to
-`C:\ProgramData\obs-studio\plugins\obs-vila-glt\data\` (OBS must be closed;
+`build_x64\RelWithDebInfo\vila-glt.dll` to
+`C:\ProgramData\obs-studio\plugins\vila-glt\` and the `data\` folder to
+`C:\ProgramData\obs-studio\plugins\vila-glt\data\` (OBS must be closed;
 writing there needs admin). This is the only third-party plugin location OBS
 supports from 33.0 on (https://obsproject.com/kb/legacy-plugin-developer-info).
 `C:\Program Files\obs-studio\obs-plugins\64bit\` + `data\obs-plugins\…` and
@@ -136,7 +136,9 @@ both files.
 ## Current state (2026-11-12)
 
 - Version `0.2.1` (`buildspec.json`; also the default in
-  `installer/obs-vila-glt.iss`), module/DLL name `obs-vila-glt`, source id
+  `installer/vila-glt.iss`), module/DLL name `vila-glt` (renamed from
+  `obs-vila-glt` on 2026-11-14, before the first release; the installer
+  removes the old ProgramData folder), source id
   still `gemini_translated_audio_source` (same as upstream — never install both
   DLLs). Built and tested on Windows only. Requires **OBS 33+** from 0.2.1 on
   (new plugin location, see *Install* above); built against the 31.1.1 SDK.
@@ -146,14 +148,17 @@ both files.
 - Versioning (owner, 2026-11-12): patch (0.2.x) for fixes, docs, languages and
   small additions; minor (0.3.0) for a new capability — expected to be
   subtitles. Count up by one, do not skip numbers.
-- Not published yet: no `origin` remote, no GitHub repo, no release. Wait for
+- Not published yet: no `origin` remote, no GitHub repo, no release. Home:
+  the GitHub organization `vila-live` (display name "Vila Live", owner's
+  decision 2026-11-14 to keep Vila apart from his personal account), repo
+  `vila-live/vila-glt` — a standalone repo, not a GitHub fork. Wait for
   the owner's word before any of that. Plan: public GitHub repo + GitHub
   Releases (installer `.exe` + drop-in `.zip`), Windows only. `release.yaml`
   builds on a `v*` tag on `windows-2022`, runs the unit tests and attaches
   both files; the macOS/Linux jobs were removed 2026-11-12 (not supported by
   the owner; build files kept, untested). The workflow has never run yet.
   It refuses a tag that differs from `buildspec.json`'s version; both files
-  are named `obs-vila-glt-<version>-windows-x64[-installer].{zip,exe}` without
+  are named `vila-glt-<version>-windows-x64[-installer].{zip,exe}` without
   the `v`. **Push only `master` and the new tag** (`git push -u origin master`,
   `git push origin v0.2.1`), never `--tags`/`--mirror`: the local upstream tags
   `v0.1.0`–`v0.1.6` would each trigger a release of upstream code. GitHub's
@@ -168,7 +173,7 @@ both files.
   installed per-user at `%LOCALAPPDATA%\Programs\Inno Setup 7\ISCC.exe`; CI
   downloads the same pinned version from jrsoftware's GitHub release, checks
   its Authenticode signature (Pyrsys B.V.) and installs it. Build with
-  `ISCC /Obuild_x64\installer installer\obs-vila-glt.iss` — `build_x64` is
+  `ISCC /Obuild_x64\installer installer\vila-glt.iss` — `build_x64` is
   git-ignored. The 0.2.0 installer (Program Files layout) was run by the owner
   2026-10-20 and 2026-11-10.
 - **Installer incident 2026-11-12 — never repeat:** a test build of the

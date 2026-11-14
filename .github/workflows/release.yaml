@@ -51,37 +51,39 @@ jobs:
         run: |
           $tag = $env:GITHUB_REF_NAME
           $ver = $tag -replace '^v', ''
-          $dll = "build_x64/RelWithDebInfo/obs-vila-glt.dll"
+          $dll = "build_x64/RelWithDebInfo/vila-glt.dll"
           if (-not (Test-Path $dll)) { throw "DLL not found at $dll" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           # drop-in zip, OBS 33+ plugin layout:
-          #   obs-vila-glt\obs-vila-glt.dll, obs-vila-glt\data\*
-          New-Item -ItemType Directory -Force -Path "stage/obs-vila-glt/data" | Out-Null
-          Copy-Item $dll "stage/obs-vila-glt/"
-          Copy-Item -Recurse "data/*" "stage/obs-vila-glt/data/"
-          Copy-Item "media/icon.ico" "stage/obs-vila-glt/data/"
+          #   vila-glt\vila-glt.dll, vila-glt\data\*
+          New-Item -ItemType Directory -Force -Path "stage/vila-glt/data" | Out-Null
+          Copy-Item $dll "stage/vila-glt/"
+          Copy-Item -Recurse "data/*" "stage/vila-glt/data/"
+          Copy-Item "media/icon.ico" "stage/vila-glt/data/"
           @(
             "Requires OBS Studio 33 or newer."
             ""
-            "Close OBS, then copy the obs-vila-glt folder into"
+            "Close OBS, then copy the vila-glt folder into"
             "  C:\ProgramData\obs-studio\plugins\"
             "so that the plugin ends up at"
-            "  C:\ProgramData\obs-studio\plugins\obs-vila-glt\obs-vila-glt.dll"
+            "  C:\ProgramData\obs-studio\plugins\vila-glt\vila-glt.dll"
             "This works wherever OBS itself is installed, including OBS from Steam."
             ""
-            "Portable OBS ignores C:\ProgramData. Copy the obs-vila-glt folder into"
+            "Portable OBS ignores C:\ProgramData. Copy the vila-glt folder into"
             "  <your OBS folder>\plugins\"
             "instead (create the plugins folder if it does not exist)."
             ""
             "If an older version was installed into C:\Program Files\obs-studio\,"
             "delete obs-plugins\64bit\obs-vila-glt.dll and data\obs-plugins\obs-vila-glt"
-            "there, or simply use the installer, which does this for you."
+            "there, and the folder C:\ProgramData\obs-studio\plugins\obs-vila-glt"
+            "(the plugin's earlier name), or simply use the installer, which does this"
+            "for you."
           ) | Set-Content "stage/INSTALL.txt"
-          Compress-Archive -Path "stage/*" -DestinationPath "dist/obs-vila-glt-$ver-windows-x64.zip" -Force
+          Compress-Archive -Path "stage/*" -DestinationPath "dist/vila-glt-$ver-windows-x64.zip" -Force
           # installer
           $iscc = Get-ChildItem "C:\Program Files\Inno Setup 7\ISCC.exe", "C:\Program Files (x86)\Inno Setup 7\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $iscc) { throw "ISCC.exe (Inno Setup 7) not found" }
-          & $iscc.FullName "/DMyAppVersion=$ver" "installer\obs-vila-glt.iss"
+          & $iscc.FullName "/DMyAppVersion=$ver" "installer\vila-glt.iss"
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
           Copy-Item "installer/Output/*.exe" dist/
       - uses: actions/upload-artifact@v4

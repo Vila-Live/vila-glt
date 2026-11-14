@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-# Vila GLT — Live Translate (`obs-vila-glt`)
+# Vila GLT — Live Translate (`vila-glt`)
 
 [English](README.md) · **Srpski**
 
@@ -22,7 +22,7 @@ Plugin je deo **Vile**, sistema glasovnih alata i agenata zasnovanog na
 Google Gemini Live modelima (native audio i live translate); *GLT* znači
 *Gemini Live Translate*. On donosi Vilin prevod uživo u OBS Studio.
 
-> **Fork i autorstvo:** `obs-vila-glt` je fork projekta
+> **Fork i autorstvo:** `vila-glt` je fork projekta
 > [weisunglee/obs-live-translate](https://github.com/weisunglee/obs-live-translate)
 > (*Gemini Live Translate for OBS*, v0.1.6, autor **Only26k / weisunglee**),
 > preuređen za produkciju emitovanja: originalni filter za mikrofon i
@@ -45,7 +45,7 @@ Google Gemini Live modelima (native audio i live translate); *GLT* znači
 > pre objavljivanja.
 
 **Preuzimanje:** Windows instaler i zip za ručnu instalaciju nalaze se na
-[stranici Releases](https://github.com/nklisic/obs-vila-glt/releases/latest) —
+[stranici Releases](https://github.com/vila-live/vila-glt/releases/latest) —
 izvorni kod nije potrebno preuzimati.
 
 ## Kako radi
@@ -225,20 +225,20 @@ verzije 33.0 koristi za plugin-ove trećih strana
 ([OBS baza znanja](https://obsproject.com/kb/legacy-plugin-developer-info)):
 
 ```
-C:\ProgramData\obs-studio\plugins\obs-vila-glt\obs-vila-glt.dll
-C:\ProgramData\obs-studio\plugins\obs-vila-glt\data\   (models.json, locale\, icon.ico)
+C:\ProgramData\obs-studio\plugins\vila-glt\vila-glt.dll
+C:\ProgramData\obs-studio\plugins\vila-glt\data\   (models.json, locale\, icon.ico)
 ```
 
 **Instaler (preporučeno):** preuzmi
-`obs-vila-glt-<verzija>-windows-x64-installer.exe` sa
-[stranice Releases](https://github.com/nklisic/obs-vila-glt/releases/latest) i
+`vila-glt-<verzija>-windows-x64-installer.exe` sa
+[stranice Releases](https://github.com/vila-live/vila-glt/releases/latest) i
 pokreni ga dok je OBS zatvoren. Traži administratorska prava, odbija OBS starije
 od 33 i uklanja kopije koje su ranije verzije ostavile u OBS-ovom folderu
 (`C:\Program Files\obs-studio\…`, „Legacy“ lokacija koju OBS 34 više neće
 učitavati). Deinstalira se iz Windows *Apps*.
 
-**Zip, ručno:** preuzmi `obs-vila-glt-<verzija>-windows-x64.zip`, zatvori OBS i
-iskopiraj njegov folder `obs-vila-glt` u `C:\ProgramData\obs-studio\plugins\`.
+**Zip, ručno:** preuzmi `vila-glt-<verzija>-windows-x64.zip`, zatvori OBS i
+iskopiraj njegov folder `vila-glt` u `C:\ProgramData\obs-studio\plugins\`.
 
 **Nije bitno gde je OBS instaliran** — OBS čita plugin-ove trećih strana iz
 sistemskog ProgramData foldera, gde god da je sam OBS. Dva posebna slučaja:
@@ -246,18 +246,18 @@ sistemskog ProgramData foldera, gde god da je sam OBS. Dva posebna slučaja:
 - **OBS sa Steam-a:** instaler možda neće naći OBS i pitaće *Install anyway?* —
   izaberi **Yes**; Steam-ov OBS takođe učitava plugin-ove iz ProgramData.
 - **Portable OBS** ne čita ProgramData. Koristi zip i iskopiraj njegov folder
-  `obs-vila-glt` u `<tvoj OBS folder>\plugins\` (napravi `plugins` ako ga nema).
+  `vila-glt` u `<tvoj OBS folder>\plugins\` (napravi `plugins` ako ga nema).
 
 **Iz sopstvenog build-a** (vidi *Build iz izvornog koda*): prevedi Inno Setup 7
-skriptu sa `ISCC /Obuild_x64\installer installer\obs-vila-glt.iss`, ili, dok je
-OBS zatvoren, iskopiraj `build_x64\RelWithDebInfo\obs-vila-glt.dll` u
-`C:\ProgramData\obs-studio\plugins\obs-vila-glt\` i folder `data\` u
-`C:\ProgramData\obs-studio\plugins\obs-vila-glt\data\`.
+skriptu sa `ISCC /Obuild_x64\installer installer\vila-glt.iss`, ili, dok je
+OBS zatvoren, iskopiraj `build_x64\RelWithDebInfo\vila-glt.dll` u
+`C:\ProgramData\obs-studio\plugins\vila-glt\` i folder `data\` u
+`C:\ProgramData\obs-studio\plugins\vila-glt\data\`.
 
 I sam DLL radi: interfejs je onda na engleskom, a tabela modela se uzima iz
 kopije ugrađene u DLL.
 
-> Napomena: pošto `obs-vila-glt` ima svoje ime modula (`obs-vila-glt.dll`), ne
+> Napomena: pošto `vila-glt` ima svoje ime modula (`vila-glt.dll`), ne
 > drži istovremeno instaliran originalni `obs-live-translate.dll`, jer oba
 > registruju isti ID izvora `gemini_translated_audio_source`.
 
@@ -351,7 +351,7 @@ pa plugin radi kao jedan binarni fajl.
 ```
 
 Da dodaš ili izmeniš model bez ponovnog build-a, stavi `models.json` istog
-oblika u `plugin_config/obs-vila-glt/` u OBS config folderu: model sa postojećim
+oblika u `plugin_config/vila-glt/` u OBS config folderu: model sa postojećim
 `id` zamenjuje ugrađeni, novi `id` se dodaje. Čita se kad se OBS pokrene.
 
 `provider` bira protokol kojim plugin govori. Implementiran je samo `gemini`;
@@ -372,18 +372,18 @@ mora da se ispravi. Na macOS-u i Linux-u ovo strože podešavanje nije testirano
 tamo flag `-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF` u nastavku sprečava da
 upozorenje obori build.
 
-**Windows** (Visual Studio 2022) — pravi `build_x64\RelWithDebInfo\obs-vila-glt.dll`:
+**Windows** (Visual Studio 2022) — pravi `build_x64\RelWithDebInfo\vila-glt.dll`:
 
 ```powershell
 cmake --preset windows-x64
 cmake --build --preset windows-x64
 ```
 
-**macOS** (Xcode 16+, universal) — pravi `build_macos/RelWithDebInfo/obs-vila-glt.plugin`:
+**macOS** (Xcode 16+, universal) — pravi `build_macos/RelWithDebInfo/vila-glt.plugin`:
 
 ```bash
 cmake --preset macos -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
-cmake --build --preset macos --target obs-vila-glt
+cmake --build --preset macos --target vila-glt
 ```
 
 **Linux** — libobs dolazi iz obsproject PPA; prvo instaliraj build zavisnosti:
@@ -393,7 +393,7 @@ sudo add-apt-repository --yes ppa:obsproject/obs-studio
 sudo apt-get update
 sudo apt-get install -y obs-studio libsimde-dev libmbedtls-dev cmake ninja-build pkg-config
 cmake --preset ubuntu-x86_64 -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
-cmake --build --preset ubuntu-x86_64 --target obs-vila-glt   # build_x86_64/obs-vila-glt.so
+cmake --build --preset ubuntu-x86_64 --target vila-glt   # build_x86_64/vila-glt.so
 ```
 
 (Koraci za Windows izdanje su u [`.github/workflows/release.yaml`](.github/workflows/release.yaml);

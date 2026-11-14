@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-# Vila GLT — Live Translate (`obs-vila-glt`)
+# Vila GLT — Live Translate (`vila-glt`)
 
 **English** · [Srpski](README.sr.md)
 
@@ -22,7 +22,7 @@ The plugin is part of **Vila**, a system of voice tools and agents built on
 Google's Gemini Live models (native audio and live translate); *GLT* stands
 for *Gemini Live Translate*. It brings Vila's live translation into OBS Studio.
 
-> **Fork & Attribution:** `obs-vila-glt` is a fork of
+> **Fork & Attribution:** `vila-glt` is a fork of
 > [weisunglee/obs-live-translate](https://github.com/weisunglee/obs-live-translate)
 > (*Gemini Live Translate for OBS*, v0.1.6, by **Only26k / weisunglee**),
 > redesigned for broadcast production: the original's microphone filter +
@@ -45,7 +45,7 @@ for *Gemini Live Translate*. It brings Vila's live translation into OBS Studio.
 > the maintainer in a live OBS setup before it is published.
 
 **Download:** the Windows installer and a drop-in zip are on the
-[Releases page](https://github.com/nklisic/obs-vila-glt/releases/latest) — no
+[Releases page](https://github.com/vila-live/vila-glt/releases/latest) — no
 need to download the source.
 
 ## How it works
@@ -227,20 +227,20 @@ uses for third-party plugins since 33.0
 ([OBS knowledge base](https://obsproject.com/kb/legacy-plugin-developer-info)):
 
 ```
-C:\ProgramData\obs-studio\plugins\obs-vila-glt\obs-vila-glt.dll
-C:\ProgramData\obs-studio\plugins\obs-vila-glt\data\   (models.json, locale\, icon.ico)
+C:\ProgramData\obs-studio\plugins\vila-glt\vila-glt.dll
+C:\ProgramData\obs-studio\plugins\vila-glt\data\   (models.json, locale\, icon.ico)
 ```
 
 **Installer (recommended):** download
-`obs-vila-glt-<version>-windows-x64-installer.exe` from the
-[Releases page](https://github.com/nklisic/obs-vila-glt/releases/latest) and
+`vila-glt-<version>-windows-x64-installer.exe` from the
+[Releases page](https://github.com/vila-live/vila-glt/releases/latest) and
 run it with OBS closed. It needs administrator rights, refuses OBS versions
 older than 33, and removes copies left by earlier versions in OBS's own folder
 (`C:\Program Files\obs-studio\…`, a "Legacy" location that OBS 34 will no
 longer load). It is uninstalled from Windows *Apps*.
 
-**Zip, by hand:** download `obs-vila-glt-<version>-windows-x64.zip`, close OBS
-and copy its `obs-vila-glt` folder into `C:\ProgramData\obs-studio\plugins\`.
+**Zip, by hand:** download `vila-glt-<version>-windows-x64.zip`, close OBS
+and copy its `vila-glt` folder into `C:\ProgramData\obs-studio\plugins\`.
 
 **Where OBS is installed does not matter** — OBS reads third-party plugins from
 the system ProgramData folder, wherever OBS itself lives. Two special cases:
@@ -248,19 +248,19 @@ the system ProgramData folder, wherever OBS itself lives. Two special cases:
 - **OBS from Steam:** the installer may not find OBS and asks *Install
   anyway?* — choose **Yes**; Steam's OBS loads plugins from ProgramData too.
 - **Portable OBS** ignores ProgramData. Use the zip and copy its
-  `obs-vila-glt` folder into `<your OBS folder>\plugins\` (create `plugins`
+  `vila-glt` folder into `<your OBS folder>\plugins\` (create `plugins`
   if needed).
 
 **From your own build** (see *Build from source*): compile the Inno Setup 7
-script with `ISCC /Obuild_x64\installer installer\obs-vila-glt.iss`, or with
-OBS closed copy `build_x64\RelWithDebInfo\obs-vila-glt.dll` to
-`C:\ProgramData\obs-studio\plugins\obs-vila-glt\` and the `data\` folder to
-`C:\ProgramData\obs-studio\plugins\obs-vila-glt\data\`.
+script with `ISCC /Obuild_x64\installer installer\vila-glt.iss`, or with
+OBS closed copy `build_x64\RelWithDebInfo\vila-glt.dll` to
+`C:\ProgramData\obs-studio\plugins\vila-glt\` and the `data\` folder to
+`C:\ProgramData\obs-studio\plugins\vila-glt\data\`.
 
 The DLL alone also works: the interface then falls back to English and the model
 table to the copy embedded in the DLL.
 
-> Note: Since `obs-vila-glt` uses its own module filename (`obs-vila-glt.dll`), do not keep the upstream `obs-live-translate.dll` installed at the same time, as both register the `gemini_translated_audio_source` source ID.
+> Note: Since `vila-glt` uses its own module filename (`vila-glt.dll`), do not keep the upstream `obs-live-translate.dll` installed at the same time, as both register the `gemini_translated_audio_source` source ID.
 
 ## Usage
 
@@ -353,7 +353,7 @@ when it is built, so the plugin works as a single binary.
 ```
 
 To add or change a model without rebuilding, put a `models.json` of the same
-shape into `plugin_config/obs-vila-glt/` in the OBS config folder: a model
+shape into `plugin_config/vila-glt/` in the OBS config folder: a model
 with an existing `id` replaces the built-in one, new ids are added. It is read
 when OBS starts.
 
@@ -375,18 +375,18 @@ fixed. On macOS/Linux this stricter setup is untested; there the
 `-DCMAKE_COMPILE_WARNING_AS_ERROR=OFF` flag below keeps a warning from
 failing the build.
 
-**Windows** (Visual Studio 2022) — produces `build_x64\RelWithDebInfo\obs-vila-glt.dll`:
+**Windows** (Visual Studio 2022) — produces `build_x64\RelWithDebInfo\vila-glt.dll`:
 
 ```powershell
 cmake --preset windows-x64
 cmake --build --preset windows-x64
 ```
 
-**macOS** (Xcode 16+, universal) — produces `build_macos/RelWithDebInfo/obs-vila-glt.plugin`:
+**macOS** (Xcode 16+, universal) — produces `build_macos/RelWithDebInfo/vila-glt.plugin`:
 
 ```bash
 cmake --preset macos -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
-cmake --build --preset macos --target obs-vila-glt
+cmake --build --preset macos --target vila-glt
 ```
 
 **Linux** — libobs comes from the obsproject PPA; install build deps first:
@@ -396,7 +396,7 @@ sudo add-apt-repository --yes ppa:obsproject/obs-studio
 sudo apt-get update
 sudo apt-get install -y obs-studio libsimde-dev libmbedtls-dev cmake ninja-build pkg-config
 cmake --preset ubuntu-x86_64 -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
-cmake --build --preset ubuntu-x86_64 --target obs-vila-glt   # build_x86_64/obs-vila-glt.so
+cmake --build --preset ubuntu-x86_64 --target vila-glt   # build_x86_64/vila-glt.so
 ```
 
 (The Windows release steps live in [`.github/workflows/release.yaml`](.github/workflows/release.yaml);

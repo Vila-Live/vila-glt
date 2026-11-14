@@ -1,26 +1,28 @@
-; Inno Setup script for Vila GLT — Live Translate (obs-vila-glt).
-; Compiled in CI with:  ISCC /DMyAppVersion=<version> installer\obs-vila-glt.iss
+; Inno Setup script for Vila GLT — Live Translate (vila-glt).
+; Compiled in CI with:  ISCC /DMyAppVersion=<version> installer\vila-glt.iss
 ;
 ; Installs into the plugin location OBS Studio 33+ supports for third-party
 ; plugins (https://obsproject.com/kb/legacy-plugin-developer-info):
-;   C:\ProgramData\obs-studio\plugins\obs-vila-glt\obs-vila-glt.dll
-;   C:\ProgramData\obs-studio\plugins\obs-vila-glt\data\*
-; and removes copies from the legacy locations (Program Files, bin\64bit),
-; which OBS 34 will no longer load. Requires OBS Studio 33 or newer.
+;   C:\ProgramData\obs-studio\plugins\vila-glt\vila-glt.dll
+;   C:\ProgramData\obs-studio\plugins\vila-glt\data\*
+; and removes copies from the legacy locations (Program Files, bin\64bit) and
+; the plugin's earlier name (obs-vila-glt). Requires OBS Studio 33 or newer.
 
 #ifndef MyAppVersion
   #define MyAppVersion "0.2.1"
 #endif
 #define MyAppName "Vila GLT — Live Translate"
-#define MyAppPublisher "nklisic"
-#define MyAppURL "https://github.com/nklisic/obs-vila-glt"
+#define MyAppPublisher "Vila Live"
+#define MyAppURL "https://github.com/vila-live/vila-glt"
 #define MinObsMajor 33
 ; The one folder this installer may own. Every path below is spelled out in
 ; full (never {app}\...), so a wrong {app} can never point a delete at OBS.
-#define PluginDir "{commonappdata}\obs-studio\plugins\obs-vila-glt"
+#define PluginDir "{commonappdata}\obs-studio\plugins\vila-glt"
+; The same folder under the plugin's earlier name (obs-vila-glt, until 0.2.1).
+#define OldPluginDir "{commonappdata}\obs-studio\plugins\obs-vila-glt"
 
 [Setup]
-; Keep AppId stable across versions so upgrades/uninstall work.
+; Keep AppId stable across versions (and the rename) so upgrades/uninstall work.
 AppId={{D4B92E7A-83C1-4F6B-9E2A-7C5D8F1B3E40}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
@@ -45,25 +47,28 @@ SetupIconFile=..\media\icon.ico
 UninstallDisplayName={#MyAppName}
 ; Icon shown in Windows "Apps"; installed with the plugin's data files below.
 UninstallDisplayIcon={#PluginDir}\data\icon.ico
-OutputBaseFilename=obs-vila-glt-{#MyAppVersion}-windows-x64-installer
+OutputBaseFilename=vila-glt-{#MyAppVersion}-windows-x64-installer
 ; Use Restart Manager to detect/close OBS if it has the DLL open.
 CloseApplications=yes
 RestartApplications=no
 
 [InstallDelete]
 ; Only our own files, by full name. Earlier versions installed into OBS's own
-; folder (legacy location):
+; folder (legacy location) under the old name obs-vila-glt:
 Type: files; Name: "{code:GetOBSDir}\obs-plugins\64bit\obs-vila-glt.dll"
 Type: files; Name: "{code:GetOBSDir}\obs-plugins\64bit\obs-vila-glt.pdb"
 Type: filesandordirs; Name: "{code:GetOBSDir}\data\obs-plugins\obs-vila-glt"
-; ...and the 2026-11-12 test build put these in OBS's root/data folder:
+; ...and the 2026-11-12 test build put this in OBS's root folder:
 Type: files; Name: "{code:GetOBSDir}\obs-vila-glt.dll"
+; The plugin's own ProgramData folder under its old name (0.2.1 test builds;
+; also holds that install's uninstaller). OBS would load it next to the new one.
+Type: filesandordirs; Name: "{#OldPluginDir}"
 ; Legacy ProgramData layout (DLL under bin\64bit) and stale data files.
 Type: filesandordirs; Name: "{#PluginDir}\bin"
 Type: filesandordirs; Name: "{#PluginDir}\data"
 
 [Files]
-Source: "..\build_x64\RelWithDebInfo\obs-vila-glt.dll"; DestDir: "{#PluginDir}"; \
+Source: "..\build_x64\RelWithDebInfo\vila-glt.dll"; DestDir: "{#PluginDir}"; \
   Flags: ignoreversion
 Source: "..\data\*"; DestDir: "{#PluginDir}\data"; Flags: recursesubdirs ignoreversion
 Source: "..\media\icon.ico"; DestDir: "{#PluginDir}\data"; Flags: ignoreversion
@@ -120,7 +125,7 @@ begin
       'This plugin needs OBS Studio {#MinObsMajor} or newer.' + #13#10#13#10 +
       '- OBS from Steam: choose Yes; it loads plugins from this location too.' + #13#10 +
       '- Portable OBS: choose No and use the zip instead (copy its' + #13#10 +
-      '  obs-vila-glt folder into <your OBS folder>\plugins\).' + #13#10#13#10 +
+      '  vila-glt folder into <your OBS folder>\plugins\).' + #13#10#13#10 +
       'Install anyway?', mbConfirmation, MB_YESNO) = IDYES;
     exit;
   end;

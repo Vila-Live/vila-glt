@@ -1,4 +1,4 @@
-"""Build the obs-vila-glt icon set from the two SVG sources in media/.
+"""Build the vila-glt icon set from the two SVG sources in media/.
 
 Sources (Material Symbols "interpreter_mode", Rounded, fill, weight 700):
   media/icon.svg        optical size 48, used for 32 px and up

@@ -5,7 +5,7 @@
 extern struct obs_source_info live_translate_source_info;
 
 OBS_DECLARE_MODULE()
-OBS_MODULE_USE_DEFAULT_LOCALE("obs-vila-glt", "en-US")
+OBS_MODULE_USE_DEFAULT_LOCALE("vila-glt", "en-US")
 
 extern "C" const char *obs_module_name(void) { return "Vila GLT — Live Translate"; }
 extern "C" const char *obs_module_description(void)

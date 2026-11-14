@@ -33,13 +33,13 @@
     },
     "platformConfig": {
         "macos": {
-            "bundleId": "com.nklisic.obs-vila-glt"
+            "bundleId": "com.vila-live.vila-glt"
         }
     },
-    "name": "obs-vila-glt",
+    "name": "vila-glt",
     "displayName": "Vila GLT — Live Translate",
     "version": "0.2.1",
     "author": "nklisic (fork of weisunglee/obs-live-translate)",
-    "website": "https://github.com/nklisic/obs-vila-glt",
-    "email": "https://github.com/nklisic/obs-vila-glt/issues"
+    "website": "https://github.com/vila-live/vila-glt",
+    "email": "https://github.com/vila-live/vila-glt/issues"
 }
