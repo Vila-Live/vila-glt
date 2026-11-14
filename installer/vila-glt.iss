@@ -11,7 +11,7 @@
 #ifndef MyAppVersion
   #define MyAppVersion "0.2.1"
 #endif
-#define MyAppName "Vila GLT — Live Translate"
+#define MyAppName "Vila GLT — Live Translate for OBS Studio"
 #define MyAppPublisher "Vila Live"
 #define MyAppURL "https://github.com/vila-live/vila-glt"
 #define MinObsMajor 33

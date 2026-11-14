@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-# Vila GLT — Live Translate (`vila-glt`)
+# Vila GLT — Live Translate for OBS Studio (`vila-glt`)
 
 **English** · [Srpski](README.sr.md)
 
