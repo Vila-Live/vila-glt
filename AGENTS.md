@@ -261,6 +261,10 @@ both files.
     (otherwise OBS has no audio from them) — documented, not a bug.
   - Log lines now carry the source name and the key's `.env` variable
     (`[vila-glt] 'name' key=VAR: …`, commit ed5a5b8), verified in OBS.
+- One input → several *Live Translate* sources with different target
+  languages at once: **verified** by the owner (2026-11-13). Each is its own
+  billed session; mixing them into one output is a cacophony, so each goes to
+  its own track / output.
 - **Not yet verified in OBS:** wrong API key (401/403 → immediate stop; the
   auto-hide it triggers is verified via give-up), exhausted credits (402; the
   owner has auto-recharge and will not test it), two-way guest setup
