@@ -152,6 +152,14 @@ both files.
   builds on a `v*` tag on `windows-2022`, runs the unit tests and attaches
   both files; the macOS/Linux jobs were removed 2026-11-12 (not supported by
   the owner; build files kept, untested). The workflow has never run yet.
+  It refuses a tag that differs from `buildspec.json`'s version; both files
+  are named `obs-vila-glt-<version>-windows-x64[-installer].{zip,exe}` without
+  the `v`. **Push only `master` and the new tag** (`git push -u origin master`,
+  `git push origin v0.2.1`), never `--tags`/`--mirror`: the local upstream tags
+  `v0.1.0`–`v0.1.6` would each trigger a release of upstream code. GitHub's
+  default branch must be `master`.
+- AGENTS.md stays in the public repo (owner, 2026-11-14): it lets others pick
+  up the work in their own forks.
 - Not for the OBS forum Resources page: its policy (updated 2026-07-29) does not
   require all three OSes, but rejects or heavily discourages plugins written
   largely with AI tools and requires an AI disclaimer; it also discourages
@@ -292,6 +300,29 @@ both files.
     translation −12 dB; the plugin taps pre-fader, so the original's fader does
     not change what Gemini hears). Automatic song detection (e.g. YAMNet) was
     discussed and not recommended (false triggers both ways, detection lag).
+  - For 0.2.2, from a pre-release review (Gemini, 2026-11-14; owner agreed
+    to defer, ask before each):
+    - Race: `run()` checks `config_changed_` (translation-session.cpp ~338),
+      then on a fatal error / give-up sets `running_ = false` (~358/378); a
+      `configure()` in between sees `running_ == true`, starts no thread, and
+      the new config is lost (source stays hidden with the old error until
+      shown again). Window is microseconds; fix by re-checking before exit.
+    - `model_has_language()` is never called by `source.cpp`: a `target_lang`
+      the model lacks (e.g. via WebSocket) is sent as-is instead of falling
+      back to the model's first language.
+    - Auto-hide in OBS Studio Mode: unverified whether the Program scene
+      follows before a transition — test it.
+    - Unused code (mostly from upstream), remove with its tests:
+      `downmix_to_mono`, `float_to_s16le`, `s16le_rms`, `s16le_has_signal`,
+      `voice_gate_tail_chunks`, `VoiceGate` (audio-convert);
+      `audio_packet_shape`, `audio_packet_duration_ns`,
+      `OutputTimestamper::over_lead` (audio-pacing, tests only);
+      `TranslationSession::status_text`, `input_idle_ms` + `last_input_ms_`;
+      the template smoke test. `cmake/windows/helpers.cmake` still installs
+      to the legacy `bin/64bit` layout (`cmake --install` is unused).
+    - `OutputDelayBuffer` erases from the front of a vector: at 30 s delay
+      that is a ~1.4 MB memmove per packet (negligible CPU, but a ring
+      buffer would be cleaner).
 - README screenshots (2026-11-12): the owner's own (`screenshots/live_translate_*.png`,
   API key blurred) replaced the upstream ones; he makes new ones himself.
 

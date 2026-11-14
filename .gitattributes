@@ -1,0 +1,2 @@
+# OBS locale files: CRLF in every checkout (see AGENTS.md)
+data/locale/*.ini text eol=crlf
